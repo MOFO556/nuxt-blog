@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { resolve } from "path";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
@@ -7,6 +8,10 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   future: {
     compatibilityVersion: 4
+  },
+  alias: {
+    '#components': fileURLToPath(new URL('../app/components', import.meta.url)),
+    '#components/*': fileURLToPath(new URL('../app/components/*', import.meta.url)),
   },
   hub: {
     blob: {
