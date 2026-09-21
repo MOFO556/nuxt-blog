@@ -1,0 +1,25 @@
+@use "sass:math";
+
+.no-text-selection {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.expandable {
+  cursor: pointer;
+  &:hover {
+    transform: scale(1.2);
+  }
+}
+
+@for $i from 1 through 12 {
+  $size: $i + (0.25 * $i);
+
+  .area-size-#{$i} textarea::placeholder {
+    line-height: #{$size}rem;
+  }
+}
