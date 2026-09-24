@@ -7,20 +7,30 @@ const paramsSchema = z.object({ id: z.coerce.number().int().positive() });
 export default defineEventHandler(async (event) => {
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse);
 
-  const post = await useDb().query.posts.findFirst({
+  const rawPost = await useDb().query.posts.findFirst({
       where: eq(posts.id, id),
       with: {
         user: {
           columns: publicUserColumns,
         },
-        images: {
-          columns: { path: true, postCover: true }
+        attachments: {
+          columns: { imageId: true },
+          with: {
+            image: {
+              columns: { path: true }
+            },
+          },
         },
       },
     });
     
-  if (!post)
+  if (!rawPost)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  return post;
+  return {
+      ...rawPost,
+      attachments: rawPost.attachments.map(att => ({
+        path: att.image?.path,
+      })),
+    };
 })

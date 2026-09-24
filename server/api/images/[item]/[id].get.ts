@@ -1,6 +1,6 @@
 import { createError, eventHandler, getRouterParam } from 'h3';
 import { eq } from 'drizzle-orm';
-import { commentAttachments, images } from '~~/server/database/schema';
+import { commentAttachments, images, postAttachments } from '~~/server/database/schema';
 
 export default eventHandler(async (event) => {
   const item = getRouterParam(event, 'item');
@@ -9,15 +9,16 @@ export default eventHandler(async (event) => {
   if (item === "posts")
     imagePath = await useDb()
       .select()
-      .from(images)
-      .where(eq(images.postId, Number(id)))
+      .from(postAttachments)
+      .where(eq(postAttachments.postId, Number(id)))
+      .leftJoin(images, eq(images.id, postAttachments.imageId))
         .then(imgs => {
-            return imgs.map(i => i.path);
-        })
+            return imgs.map(i => i.Image?.path).filter(i => typeof i === "string");
+          })
         .catch(e => {        
           throw createError({ 
             statusCode: 400, 
-            statusMessage: 'Could not handle the post images request', 
+            statusMessage: 'Could not handle the comment images request', 
             data: e 
           });
         });

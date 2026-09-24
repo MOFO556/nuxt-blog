@@ -12,6 +12,7 @@
         return { data: ref([]), error: e }
       });
   const blogPost = computed(() => {
+    console.log(posts)
     return posts?.value?.map(p => {
       return {
         ...p,
@@ -36,7 +37,7 @@
           v-for="post in blogPost"
           :key="post.id" 
           :to="`/office/posts/${post.id}`"
-          :image="post.images?.find(i => i.postCover)?.path"
+          :image="post.attachments?.find(i => i.postCover)?.path"
           v-bind="post" />
       </UBlogPosts>
       <h2 v-else>{{error?.message}}</h2>        

@@ -1,22 +1,20 @@
-import { posts } from '~~/server/database/schema';
-import { postInsertSchema } from '~~/server/database/posts.validators';
-import { useSafeReadValidateBody } from '../composable/useSafeReadValidateBody';
+import { Post, postAttachments, posts } from '~~/server/database/schema';
+import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
+import { postInput, postInsertSchema } from '~~/server/database/posts.validators';
 import { requireAuth } from '~~/server/utils/auth';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const userId = event.context.user.id;
-  const input = await readValidatedBody(event, postInsertSchema.parse);
-  // const input = await useSafeReadValidateBody(event, postInsertSchema)
+  const input = await useSafeReadValidateBody<postInput>(event, postInsertSchema);
+  const { images }: { images?: { postCover: boolean, id: number }[] } = await readBody(event);
+  let created: Post | undefined;
 
   try {
-    const [created] = await useDb()
+    [created] = await useDb()
       .insert(posts)
       .values({...input, userId})
       .returning();
-
-    setResponseStatus(event, 201);
-    return created;
   }
   catch (error: any) {
     if (String(error?.code).includes('SQLITE_CONSTRAINT_UNIQUE')) {
@@ -24,4 +22,21 @@ export default defineEventHandler(async (event) => {
     }
     throw error;
   }
+  if (images?.length && !!created?.id)
+    try {
+      const postCoverId = images.findIndex(i => i.postCover === true);
+      await useDb()
+        .insert(postAttachments)
+        .values(images.map((i: { postCover: boolean, id: number }, index: number) => ({          
+          postId: created.id,
+          imageId: i.id,
+          postCover: postCoverId === -1 ? index === 0 : postCoverId === index
+        })));
+    }
+    catch (error: any) {
+      throw error;
+    }
+
+  setResponseStatus(event, 201);
+  return created;
 })

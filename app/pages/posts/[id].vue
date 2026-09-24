@@ -31,11 +31,11 @@ import type { Post } from '~/types/posts';
         :authors="[{name: data.user.login}]"/>
 
       <UCarousel class="mt-2 w-full mx-auto"
-        v-if="data?.images"
+        v-if="data?.attachments?.length"
         v-slot="{ item }"
         loop
         arrows
-        :items="data.images"
+        :items="data.attachments"
         :ui="{ item: 'basis-1/3', container: 'justify-center' }">
         <NuxtImg :src="item.path.startsWith('/') ? `${item.path}` : `/${item.path}`" 
           class="rounded-lg"

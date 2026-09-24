@@ -4,6 +4,7 @@ import { posts } from './posts';
 import { images } from './images';
 import { comments } from './comments';
 import { commentAttachments } from './commentsAttachment';
+import { postAttachments } from './postsAttachment';
 
 export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),
@@ -15,17 +16,14 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
     fields: [posts.userId],
     references: [users.id],
   }),
-  images: many(images),
-  comments: many(comments)
+  comments: many(comments),
+  attachments: many(postAttachments),
 }));
 
-export const imagesRelations = relations(images, ({ one, many }) => ({
-  posts: one(posts, {
-    fields: [images.postId],
-    references: [posts.id]
-  }),
+export const imagesRelations = relations(images, ({ many }) => ({
   comments: many(comments),
-  attachments: many(commentAttachments),
+  commentAttachments: many(commentAttachments),
+  postAttachments: many(postAttachments),
 }));
 
 export const commentsRelations = relations(comments, ({one, many}) => ({
@@ -51,6 +49,17 @@ export const commentAttachmentsRelations = relations(commentAttachments, ({ one 
   }),
   image: one(images, {
     fields: [commentAttachments.imageId],
+    references: [images.id],
+  }),
+}));
+
+export const postAttachmentsRelations = relations(postAttachments, ({ one }) => ({
+  post: one(posts, {
+    fields: [postAttachments.postId],
+    references: [posts.id],
+  }),
+  image: one(images, {
+    fields: [postAttachments.imageId],
     references: [images.id],
   }),
 }));

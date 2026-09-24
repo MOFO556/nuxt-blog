@@ -4,10 +4,10 @@ import { users } from "./users";
 
 export const posts = sqliteTable("Post", {
   id: integer("id").primaryKey({ autoIncrement: true }).unique(),
-  url: text("url", { length: 255 }).notNull().unique(),
+  url: text("url", { length: 255 }).notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: text("updated_at"),
 	userId: integer().references(() => users.id, { onDelete: "cascade" }).notNull(),
 }, (column) => [

@@ -17,11 +17,11 @@ import type { Post } from '~/types/posts';
         :date="post.updatedAt || post.createdAt"/>
 
       <UCarousel class="mt-2 w-full mx-auto"
-        v-if="post?.images"
+        v-if="post?.attachments"
         v-slot="{ item }"
         loop
         arrows
-        :items="post.images"
+        :items="post.attachments"
         :ui="{ item: 'basis-1/3', container: 'justify-center' }">
         <NuxtImg :src="item.path.startsWith('/') ? `${item.path}` : `/${item.path}`" 
           class="rounded-lg"

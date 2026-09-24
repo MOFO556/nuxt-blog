@@ -9,7 +9,9 @@ export default defineTask({
   },
   async run() {
     try {
-      const usersArr: InsertUser[] = [];
+      const usersArr: InsertUser[] = [
+        { login: "admin", password: await hash("password", 12)}
+      ];
       const postsArr: InsertPost[] = [];
 
       for (let i = 0; i < 50; i++) {

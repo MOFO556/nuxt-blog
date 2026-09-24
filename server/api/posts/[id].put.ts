@@ -1,13 +1,15 @@
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { posts } from '~~/server/database/schema';
-import { postPatchSchema } from '~~/server/database/posts.validators';
+import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
+import { postAttachments, posts } from '~~/server/database/schema';
+import { postPatch, postPatchSchema } from '~~/server/database/posts.validators';
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() });
 
 export default defineEventHandler(async (event) => {
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse);
-  const patch = await readValidatedBody(event, postPatchSchema.parse);
+  const patch = await useSafeReadValidateBody<postPatch>(event, postPatchSchema);
+  const { images }: { images?: { postCover: boolean, id: number }[] } = await readBody(event);
 
   if (Object.keys(patch).length === 0)
     throw createError({ statusCode: 400, statusMessage: 'Empty patch' });
@@ -20,6 +22,21 @@ export default defineEventHandler(async (event) => {
 
   if (!updated)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
+
+  if (images?.length)
+    try {
+      const postCoverId = images.findIndex(i => i.postCover === true);
+      await useDb()
+        .insert(postAttachments)
+        .values(images.map((i: { postCover: boolean, id: number }, index: number) => ({          
+          postId: id,
+          imageId: i.id,
+          postCover: postCoverId === -1 ? index === 0 : postCoverId === index
+        })));
+    }
+    catch (error: any) {
+      throw error;
+    }
 
   return updated;
 })

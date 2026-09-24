@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { z } from 'zod';
-import type { UploadItem } from '~/types/core';
-import type { Post, PostImage } from '~/types/posts';
+import type { UploadMethodResultItem } from '~/types/forms';
+import type { Post, PostImageMeta, PostItemUploadMeta } from '~/types/posts';
 
-const { title = '', content = '', url = '', images = null, id } = defineProps<{
+const { title = '', content = '', url = '', images, id } = defineProps<{
       url?: string,
       title?: string,
       content?: string,
-      images?: any[],
+      images?: PostImageMeta[],
       id?: number
     }>();
 const coverIndex = ref<number | null>(null);
@@ -16,7 +16,7 @@ const schema = z.object({
   title: z.string().min(1, 'Title is required'),
   content: z.string().min(1, 'Content is required'),
   url: z.string().min(1, 'URL is required'),
-  images: z.array(z.object().nullable()).nullable()
+  images: z.array(z.instanceof(Object)).optional()
 });
 
 const form = useForm(
@@ -24,7 +24,7 @@ const form = useForm(
     title: title,
     content: content,
     url: url,
-    images: images,
+    images: [] as File[],
     ...(id ? { id }: {})
   },
   "id",
@@ -43,7 +43,7 @@ function preventBubbling(event: MouseEvent) {
   event.stopPropagation();
 };
 
-function setCover(index: number, checked: boolean| "indeterminate", item: File & { isCover?: boolean }) {
+function setCover(index: number, checked: boolean| "indeterminate", item: File & { postCover?: boolean }) {
   if (checked)
     coverIndex.value = index;
   else if (coverIndex.value === index)
@@ -65,28 +65,29 @@ function setSelectedCover() {
     || coverIndex.value === null)
     return;
   else
-    form.value.images?.map((img: File & { isCover?: boolean }, index: number) => {
-      img.isCover = index === coverIndex.value;
+    form.value.images?.map((img: File & { postCover?: boolean }, index: number) => {
+      img.postCover = index === coverIndex.value;
       return img;
     })
 }
 
-async function loadExistingFiles(urls: PostImage[]) {
+async function loadExistingFiles(urls: PostImageMeta[]) {
   const files = await Promise.all(
     urls.map(async (u) => {
       const url = typeof u === 'string' ? u : u.path;
-      const isCover = typeof u === 'string' ? false : !!u.postCover;
+      const postCover = typeof u === 'string' ? false : !!u.postCover;
 
       const file = await urlToFile(url);
       (file as any).existingPath = url;
-      (file as any).isCover = isCover;
-      return <UploadItem>file;
+      (file as any).originalName = u.name;
+      (file as any).postCover = postCover;
+      return <PostItemUploadMeta>file;
     })
   );
 
   form.value.images = files;
 
-  const coverIdx = files.findIndex((f: UploadItem) => f.isCover);
+  const coverIdx = files.findIndex((f: PostItemUploadMeta) => f.postCover);
   coverIndex.value = coverIdx >= 0 ? coverIdx : null;
 }
 
@@ -95,6 +96,14 @@ onMounted(() => {
     loadExistingFiles(images);
 });
 
+function updatePathsOnUpload(paths: Record<string, UploadMethodResultItem[]>) {
+  Object.keys(paths)
+    .forEach(async formKey => {
+      if (paths[formKey])
+        await loadExistingFiles(paths[formKey]);
+    })
+}
+
 </script>
 
 <template>  
@@ -102,7 +111,10 @@ onMounted(() => {
     :schema="schema"
     @submit.prevent="setSelectedCover(); form.submit(
         id ? useNuxtApp().$api.posts.edit : useNuxtApp().$api.posts.add,
-        { uploadMethod: { images: useNuxtApp().$api.images.uploadToPost } }
+        { 
+          uploadMethod: { images: useNuxtApp().$api.images.uploadToPost },          
+          onUploadSucseed: (e) => updatePathsOnUpload(e)
+        }
       )"
     class="max-w-md mx-auto p-6 space-y-4">
     <UFormField  class="w-full relative pb-2"

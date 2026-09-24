@@ -15,6 +15,6 @@ import type { Post } from '~/types/posts';
       :title="data?.title" 
       :url="data?.url" 
       :content="data?.content"
-      :imageSrcs="data?.images"
+      :imageSrcs="data?.attachments"
       :post="data"/>
 </template>

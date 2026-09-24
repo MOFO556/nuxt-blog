@@ -19,20 +19,33 @@ export default defineEventHandler(async (event) => {
       )
     : undefined;
   
-  return db.query.posts.findMany({
+  const rawPosts = await db.query.posts.findMany({
     where,
     with: {
       user: {
         columns: publicUserColumns,
       },
-      images: {
-        columns: { path: true, postCover: true }
+      attachments: {
+        columns: { imageId: true, postCover: true },
+        with: {
+          image: {
+            columns: { path: true }
+          }
+        }
       }
     },
     orderBy: (posts, { desc }) => [desc(posts.createdAt)],
     limit,
     offset,
   });
+
+  return rawPosts.map(rawPost => ({
+      ...rawPost,
+      attachments: rawPost.attachments.map(att => ({
+        path: att.image?.path,
+        postCover: att?.postCover
+      })),
+    }));
 
   // return db
   //   .select()

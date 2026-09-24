@@ -12,4 +12,5 @@ export type FilteredNavigationMenuItem = NavigationMenuItem & {
   filterKeys: MenuFilters[]
 }
 
-export type UploadItem = File & { isCover?: boolean; existingPath?: string };
+export type ItemUploadMeta = File & { existingPath?: string; description?: string };
+export type ImageMeta = { name: string, path: string, description?: string };

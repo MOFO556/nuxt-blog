@@ -1,4 +1,4 @@
-import type { Post, PostStore } from "~/types/posts"
+import type { Post, PostInsert } from "~/types/posts"
 
 export function createPostsRepository(appFetch: typeof $fetch) {
   return {
@@ -21,7 +21,7 @@ export function createPostsRepository(appFetch: typeof $fetch) {
     async post(id: string) {
       return appFetch<Post>(`posts/${id}`);
     },
-    async add(payload: PostStore) {
+    async add(payload: PostInsert) {
       return appFetch<Post>(`posts/`, { 
         method: 'POST',
         body: payload

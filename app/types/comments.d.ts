@@ -1,3 +1,5 @@
+import type { ImageMeta } from "./core"
+
 export type Comment = {
   id: number,
   text: string,
@@ -6,5 +8,18 @@ export type Comment = {
   updatedAt: string,
   userId: string,
   user: Omit<User, "password">
-  attachments?: { path: string }[]
+  attachments?: ImageMeta[]
+}
+
+export type CommentInsert<T = PostComment | ImageComment> = T & {
+  text: string,
+  images?: ImageMeta[]
+}
+
+export type PostComment = {
+  postId: number
+}
+
+export type ImageComment = {
+  postId: number
 }

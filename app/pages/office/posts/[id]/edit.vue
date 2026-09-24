@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PostImage } from '~/types/posts';
+import type { ImagePayload } from '~/types/posts';
 
   const { params } = useRoute();
   const id = computed(() => Number(params.id as string));
@@ -7,7 +7,7 @@ import type { PostImage } from '~/types/posts';
       url?: string,
       title?: string,
       content?: string,
-      imageSrcs?: PostImage[]
+      imageSrcs?: ImagePayload[]
     }>();
 </script>
 

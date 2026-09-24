@@ -6,6 +6,7 @@ import type {
   ObjectParamsMethod, 
   SpreadParamsMethod, 
   UploadMethod, 
+  UploadMethodResultItem, 
   ValidationError 
 } from "~/types/forms";
 import type { SingleKeyOfType } from '~/types/utills';
@@ -13,7 +14,7 @@ import type { SingleKeyOfType } from '~/types/utills';
 export const useForm = <TFormData extends Record<string, unknown>, TApiRes extends Record<string, unknown>>(
     _data: TFormData,
     keyField?: SingleKeyOfType<Awaited<TApiRes>, number>,
-    onSuccess?: (args: TApiRes) => void,
+    onFormReqSuccess?: (args: TApiRes) => void,
     schema?: z.ZodSchema
   ) => {
 
@@ -26,13 +27,13 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
   const setError = (field: keyof TFormData, message: string, additionalInfo?: string) => {
     if (field in _data)
       errors[field as string] = `${message}${additionalInfo ? ` ${additionalInfo}` : ''}`;
-  }
+  };
 
   const resetErrors = () => {
     Object.keys(errors).forEach((key) => {
       delete errors[key]
     });
-  }
+  };
 
   const reset = (...fields: (keyof TFormData)[]) => {
     if (fields.length === 0)
@@ -53,10 +54,10 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
           data.value[field] = originalData[field];
         }
       });
-  }
+  };
   
   const handleValidationErrors = (validationErrors: ValidationError[]) => {
-    resetErrors()
+    resetErrors();
     validationErrors.forEach((error) => {
       setError(
         error[0], 
@@ -66,7 +67,8 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
           : undefined
       )
     })
-  }
+  };
+
   function hasFiles(data: TFormData): boolean {
     if (data instanceof File) {
       return true
@@ -81,26 +83,34 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
     }
 
     return false
-  }
-  const hasFile = ref(hasFiles(data.value))
+  };
+
+  const hasFile = ref(hasFiles(data.value));
 
   watch(
     data.value,
     (newValue: TFormData) => { hasFile.value = hasFiles(newValue) },
     { deep: true },
-  )
+  );
 
   const validateForm = async () => {
     resetErrors();
     
-    if (!schema) return true;
+    if (!schema) 
+      return true;
     
     try {
       await schema.parseAsync(data.value);
       return true;
     } catch (err: any) {
       if (err instanceof z.ZodError) {
-        console.log(err)
+        err.format((f) => {
+          f.path.forEach(p => {            
+            setError(p as keyof TFormData, f.message);
+          })
+          console.log(f);
+        })
+        console.log('Kuku', err)
         // err.errors.forEach((error) => {
         //   const field = error.path[0] as string;
         //   errors[field] = error.message;
@@ -108,48 +118,82 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
       }
       return false;
     }
-  }
+  };
 
   const submit = async (
     method: Method<TFormData, TApiRes>, 
-    options: { uploadMethod?: {[K in keyof TFormData as TFormData[K] extends File[] ? K : never]: UploadMethod}, useObjectArgs?: boolean  }
+    options: { 
+      uploadMethod?: {
+        [K in keyof TFormData as TFormData[K] extends File[] ? K : never]: UploadMethod
+      },
+      onUploadSucseed?: (res: {[x: string]: UploadMethodResultItem[]}) => void,
+      useObjectArgs?: boolean  
+    }
     ) => {
     try {
-      const { uploadMethod, useObjectArgs = true } = options;
+      const { uploadMethod, onUploadSucseed, useObjectArgs = true } = options;
       const isValid = await validateForm();
       if (!isValid) 
         return;
 
       const requestData = data.value;
       processing.value = true;
+      let uploadedFiles: {  [x: string]: UploadMethodResultItem[] } = {};
+
+      if (hasFile && !!uploadMethod) {
+        const key = typeof requestData[keyField as string] === "number"  
+          ? requestData[keyField as string] as number
+          : null;
+        if (keyField) {
+          uploadedFiles = (await Promise.all(
+            Object.entries(uploadMethod)
+            .map(async ([itemKey, uploadMethod]) => {
+              if (requestData[itemKey]?.length)
+                return (uploadMethod as UploadMethod)(key, requestData[itemKey])
+                .then(files => {
+                  const fileMetaRes:(UploadMethodResultItem & File & { originalName?: string })[] = [];
+                  requestData[itemKey] = requestData[itemKey].map((d: File & { originalName?: string }) => {
+                    const fileMeta = files.find(f => f.name === (d?.originalName || d.name));
+                    if (fileMeta)
+                      fileMetaRes.push({...d, ...fileMeta})
+                    if (fileMeta)
+                      return { existingPath: fileMeta.path, originalName: fileMeta.name };
+                    else 
+                      return d;
+                  });
+                  return { [itemKey]: fileMetaRes }
+                })
+                .catch(err => {
+                  const validationErrors = err.data.data;
+                  processing.value = false
+                  if (err.statusCode === 422 && Array.isArray(validationErrors)) {
+                    handleValidationErrors(validationErrors)
+                  }
+                  return {};
+                });
+            })
+            .filter(r => r !== undefined)
+          )).reduce((prev, acc) => {
+              return {...prev, ...acc}
+            }, {}) || {};
+          if (onUploadSucseed !== undefined)
+            onUploadSucseed(uploadedFiles);
+          
+        }
+      };
 
       const result = await useObjectArgs
-        ? await (method as ObjectParamsMethod<TFormData, TApiRes>)(requestData)
-        : await (method as SpreadParamsMethod<TFormData, TApiRes>)(...(Object.values(requestData) as TFormData[]));
+        ? await (method as ObjectParamsMethod<TFormData, TApiRes>)({...requestData, ...uploadedFiles})
+        : await (method as SpreadParamsMethod<TFormData, TApiRes>)(...(Object.values({...requestData, ...uploadedFiles}) as TFormData[]));
 
       processing.value = false;
       success.value = true;
-
-      if (hasFile && !!uploadMethod) {
-        const key = typeof result[keyField as string] === "number"  
-          ? result[keyField as string] as number
-          : undefined;
-        if (keyField && key) {
-          const resultAttachments = await Promise.all(
-            Object.entries(uploadMethod).map(async ([itemKey, uploadMethod]): Promise<BlobObject[] | undefined>=> {
-              if (requestData[itemKey]?.length)
-                return (uploadMethod as UploadMethod)(key, requestData[itemKey]);
-            }).filter(r => r !== undefined)
-          )
-        }
-      }
       
-      if (onSuccess)
-        onSuccess(result);
+      if (onFormReqSuccess)
+        onFormReqSuccess(result);
     }
     catch (err: any) {
-      console.log(err)
-      const validationErrors = err.data;
+      const validationErrors = err.data.data;
       processing.value = false
       if (err.statusCode === 422 && Array.isArray(validationErrors)) {
         handleValidationErrors(validationErrors)
@@ -158,7 +202,7 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
     finally {
       processing.value = false
     }
-  }
+  };
 
   return reactive({
     ...toRefs(data.value),

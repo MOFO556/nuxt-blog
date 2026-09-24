@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "1e6af5a4-c2af-4a06-a117-7bdd30ee7eef",
+  "id": "e6f789b3-fe6f-43e6-a261-9cc3e700fc2f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "User": {
@@ -100,7 +100,7 @@
           "name": "created_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
@@ -124,13 +124,6 @@
           "name": "Post_id_unique",
           "columns": [
             "id"
-          ],
-          "isUnique": true
-        },
-        "Post_url_unique": {
-          "name": "Post_url_unique",
-          "columns": [
-            "url"
           ],
           "isUnique": true
         },
@@ -185,31 +178,24 @@
           "notNull": true,
           "autoincrement": false
         },
+        "description": {
+          "name": "description",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "post_cover": {
-          "name": "post_cover",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "postId": {
-          "name": "postId",
-          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -229,46 +215,12 @@
             "path"
           ],
           "isUnique": true
-        },
-        "image_postId_idx": {
-          "name": "image_postId_idx",
-          "columns": [
-            "postId"
-          ],
-          "isUnique": false
-        },
-        "image_post_cover_unique": {
-          "name": "image_post_cover_unique",
-          "columns": [
-            "postId"
-          ],
-          "isUnique": true,
-          "where": "\"Image\".\"post_cover\" = 1"
         }
       },
-      "foreignKeys": {
-        "Image_postId_Post_id_fk": {
-          "name": "Image_postId_Post_id_fk",
-          "tableFrom": "Image",
-          "tableTo": "Post",
-          "columnsFrom": [
-            "postId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {
-        "image_post_cover_check": {
-          "name": "image_post_cover_check",
-          "value": "(postId IS NOT NULL AND post_cover IS NOT NULL) OR (postId IS NULL AND post_cover IS NULL)"
-        }
-      }
+      "checkConstraints": {}
     },
     "Comment": {
       "name": "Comment",
@@ -291,7 +243,7 @@
           "name": "created_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
@@ -309,15 +261,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "postId": {
-          "name": "postId",
+        "post_id": {
+          "name": "post_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "imageId": {
-          "name": "imageId",
+        "image_id": {
+          "name": "image_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -342,14 +294,14 @@
         "comment_postId_idx": {
           "name": "comment_postId_idx",
           "columns": [
-            "postId"
+            "post_id"
           ],
           "isUnique": false
         },
         "comment_imageId_idx": {
           "name": "comment_imageId_idx",
           "columns": [
-            "imageId"
+            "image_id"
           ],
           "isUnique": false
         }
@@ -368,12 +320,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "Comment_postId_Post_id_fk": {
-          "name": "Comment_postId_Post_id_fk",
+        "Comment_post_id_Post_id_fk": {
+          "name": "Comment_post_id_Post_id_fk",
           "tableFrom": "Comment",
           "tableTo": "Post",
           "columnsFrom": [
-            "postId"
+            "post_id"
           ],
           "columnsTo": [
             "id"
@@ -381,12 +333,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "Comment_imageId_Image_id_fk": {
-          "name": "Comment_imageId_Image_id_fk",
+        "Comment_image_id_Image_id_fk": {
+          "name": "Comment_image_id_Image_id_fk",
           "tableFrom": "Comment",
           "tableTo": "Image",
           "columnsFrom": [
-            "imageId"
+            "image_id"
           ],
           "columnsTo": [
             "id"
@@ -400,7 +352,7 @@
       "checkConstraints": {
         "comment_entity_check": {
           "name": "comment_entity_check",
-          "value": "(postId IS NOT NULL AND imageId IS NULL) OR (postId IS NULL AND imageId IS NOT NULL)"
+          "value": "(post_id IS NOT NULL AND image_id IS NULL) OR (post_id IS NULL AND image_id IS NOT NULL)"
         }
       }
     },
@@ -473,6 +425,95 @@
             "image_id"
           ],
           "name": "CommentAttachment_comment_id_image_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "PostAttachment": {
+      "name": "PostAttachment",
+      "columns": {
+        "post_id": {
+          "name": "post_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "post_cover": {
+          "name": "post_cover",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "image_id": {
+          "name": "image_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "postAttachment_postId_idx": {
+          "name": "postAttachment_postId_idx",
+          "columns": [
+            "post_id"
+          ],
+          "isUnique": false
+        },
+        "postAttachment_imageId_idx": {
+          "name": "postAttachment_imageId_idx",
+          "columns": [
+            "image_id"
+          ],
+          "isUnique": false
+        },
+        "image_post_cover_unique": {
+          "name": "image_post_cover_unique",
+          "columns": [
+            "post_id"
+          ],
+          "isUnique": true,
+          "where": "\"PostAttachment\".\"post_cover\" = 1"
+        }
+      },
+      "foreignKeys": {
+        "PostAttachment_post_id_Post_id_fk": {
+          "name": "PostAttachment_post_id_Post_id_fk",
+          "tableFrom": "PostAttachment",
+          "tableTo": "Post",
+          "columnsFrom": [
+            "post_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "PostAttachment_image_id_Image_id_fk": {
+          "name": "PostAttachment_image_id_Image_id_fk",
+          "tableFrom": "PostAttachment",
+          "tableTo": "Image",
+          "columnsFrom": [
+            "image_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "PostAttachment_post_id_image_id_pk": {
+          "columns": [
+            "post_id",
+            "image_id"
+          ],
+          "name": "PostAttachment_post_id_image_id_pk"
         }
       },
       "uniqueConstraints": {},

@@ -1,8 +1,8 @@
 import { blob } from 'hub:blob';
 import { and, eq, inArray } from 'drizzle-orm';
-import { commentAttachments, Image, images } from '~~/server/database/schema';
+import { commentAttachments, Image, images, InsertImage, postAttachments } from '~~/server/database/schema';
 
-type ManifestEntry = { existing?: string; isCover?: boolean };
+type ManifestEntry = { existing: string };
 
 export default eventHandler(async (event) => {
   await requireAuth(event);
@@ -14,97 +14,62 @@ export default eventHandler(async (event) => {
     throw createError({ statusCode: 422, statusMessage: 'Empty payload' });
 
   const manifestPart = parts.find(p => p.name === 'manifest');
-  if (!manifestPart) 
-    throw createError({ statusCode: 422, statusMessage: 'Missing manifest' });
-
-  const manifest: ManifestEntry[] = JSON.parse(manifestPart.data.toString());
-
+  const manifest: ManifestEntry[] = manifestPart ? JSON.parse(manifestPart.data.toString()) : [];
   const fileParts = parts.filter(p => p.name === 'files' && p.filename);
-  const isPost = item === 'posts';
-  const ownerId = Number(id);
-  const postId = isPost ? ownerId : null;
+
+  const entityId = Number(id);
   
-  let cursor = 0;
-  const resolvedPaths: string[] = [];
-  const newPaths: string[] = [];
+  const existingPaths: string[] = manifest.map(e => e.existing);
+  const resolvedPaths: string[] = [...existingPaths];
+  const newImages: InsertImage[] = [];
 
-  for (const entry of manifest) {
-    if (entry.existing) {
-      resolvedPaths.push(entry.existing);
-      continue;
-    }
-
-    const part = fileParts[cursor++];
-    if (!part) 
+  for (const entry of fileParts) {
+    if (!entry) 
       throw createError({ statusCode: 422, statusMessage: 'File count mismatch' });
-    if (part.data.length > 10 * 1024 * 1024)
+    if (entry.data.length > 10 * 1024 * 1024)
       throw createError({ statusCode: 422, statusMessage: 'File too large' });
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(part.type ?? ''))
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(entry.type ?? ''))
       throw createError({ statusCode: 422, statusMessage: 'Unsupported type' });
-    if (!part.filename)
+    if (!entry.filename)
       throw createError({ statusCode: 422, statusMessage: 'Invalid file' });
 
-    const uploaded = await blob.put(part.filename, part.data, {
-      contentType: part.type,
+    const uploaded = await blob.put(entry.filename, entry.data, {
+      contentType: entry.type,
       addRandomSuffix: true,
       prefix: 'images',
     });
     resolvedPaths.push(uploaded.pathname);
-    newPaths.push(uploaded.pathname);
+    newImages.push({ name: entry.filename, path: uploaded.pathname});
   }
-  
-  const coverIdx = manifest.findIndex(m => m.isCover);
-  const finalCoverPath = resolvedPaths[coverIdx >= 0 ? coverIdx : 0] ?? null;
-  const keptPaths = new Set(resolvedPaths);
   const db = useDb();
 
-  let currentPostImages: { id: number; path: string }[] = [];
+  let currentImages: { id: number | null; path: string | null, name: string | null }[] = [];
 
-  if (item === 'posts' && postId !== null)
-    currentPostImages = await db
-      .select({ id: images.id, path: images.path })
-      .from(images)
-      .where(eq(images.postId, postId));
+  if (item === 'posts' && entityId !== null)
+    currentImages = await db
+      .select({ id: images.id, path: images.path, name: images.name})
+      .from(postAttachments)
+      .where(eq(postAttachments.postId, entityId))
+      .leftJoin(images, eq(images.id, postAttachments.imageId));
+  else if (item === 'comments' && entityId !== null)
+    currentImages = await db
+      .select({ id: images.id, path: images.path, name: images.name})
+      .from(commentAttachments)
+      .where(eq(commentAttachments.commentId, entityId))
+      .leftJoin(images, eq(images.id, commentAttachments.imageId));
 
   const orphanBlobs: string[] = [];
   let created: Image[] = [];
+  const keptPaths = new Set(resolvedPaths);
 
-  db.transaction((tx) => {
-    if (postId !== null) {
-      tx.update(images)
-        .set({ postCover: false })
-        .where(eq(images.postId, postId))
-        .run();
-        
-      const toDelete = currentPostImages.filter(img => !keptPaths.has(img.path));
-
-      if (toDelete.length) {
-        orphanBlobs.push(...toDelete.map(i => i.path));
-        tx.delete(images).where(inArray(images.id, toDelete.map(i => i.id))).run();
-      }
+  db.transaction((tx) => {    
+    const toDelete = currentImages.filter(img => img.path && !keptPaths.has(img.path));    
+    if (toDelete.length) 
+      orphanBlobs.push(...toDelete.map(i => i.path).filter(i => i !== null));{
+      tx.delete(images).where(inArray(images.id, toDelete.map(i => i.id).filter(i => i !== null))).run();
     }
-    
-    const newRows = newPaths.map((path, i) => ({
-      name: new Date().getTime().toString() + i,
-      path,
-      ...(isPost ? { postId, postCover: false } : {}),
-    }));
-
-    if (newRows.length)
-      created = tx.insert(images).values(newRows).returning().all();
-    
-    if (postId !== null && finalCoverPath)
-      tx.update(images)
-        .set({ postCover: true })
-        .where(and(eq(images.postId, postId), eq(images.path, finalCoverPath)))
-        .run();
-    
-    if (item === 'comments' && ownerId) {
-      if (created.length)
-        tx.insert(commentAttachments)
-          .values(created.map(img => ({ imageId: img.id, commentId: ownerId })))
-          .run();
-    }
+    if (newImages.length)
+      created = tx.insert(images).values(newImages).returning().all();
   });
 
   await Promise.all(orphanBlobs.map(p => blob.del(p)
@@ -113,6 +78,15 @@ export default eventHandler(async (event) => {
     })
   ));
 
+  /**
+   * Case: Images already loaded, but no relation to entity
+   */
+  if (!currentImages?.length && existingPaths?.length)
+    currentImages = await db
+    .select({ id: images.id, path: images.path, name: images.name})
+    .from(images)
+    .where(inArray(images.path, resolvedPaths));
+
   setResponseStatus(event, created.length ? 201 : 200);
-  return created;
+  return [...currentImages.filter(i => i.path !== null), ...created];
 });

@@ -31,7 +31,7 @@ const { data: comments} = await useAsyncData<Comment[]>(
           <UContainer class="flex gap-2 px-0 sm:px-0 lg:px-0 items-center justify-between text-xs">
             <ClientOnly>
               <UContainer class="flex gap-2 items-center justify-start">              
-                <UAvatar src="images/pwa-icon-d05ca427.png" size="xs"></UAvatar>
+                <!-- <UAvatar src="images/pwa-icon-d05ca427.png" size="xs"></UAvatar> -->
                 <pre>{{ comment.user.login }}</pre>
               </UContainer>              
             </ClientOnly>
