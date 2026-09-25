@@ -1,4 +1,4 @@
-import type { User, UserResp } from "~/types/user";
+import type { UserResp } from "~/types/user";
 
 export function createUserRepository(appFetch: typeof $fetch) {
   const userStore = useUserStore();

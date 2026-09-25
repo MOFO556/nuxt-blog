@@ -1,11 +1,12 @@
 import { blob } from 'hub:blob';
-import { and, eq, inArray } from 'drizzle-orm';
-import { commentAttachments, Image, images, InsertImage, postAttachments } from '~~/server/database/schema';
+import { eq, inArray, sql } from 'drizzle-orm';
+import { commentAttachments, comments, Image, images, InsertImage, postAttachments, posts } from '~~/server/database/schema';
 
-type ManifestEntry = { existing: string };
+type ManifestEntry = { existing: string, description?: string, newFileName?: string };
 
 export default eventHandler(async (event) => {
   await requireAuth(event);
+  const userId = event.context.user.id;
   const item = getRouterParam(event, 'item');
   const id  = getRouterParam(event, 'id');
 
@@ -17,9 +18,9 @@ export default eventHandler(async (event) => {
   const manifest: ManifestEntry[] = manifestPart ? JSON.parse(manifestPart.data.toString()) : [];
   const fileParts = parts.filter(p => p.name === 'files' && p.filename);
 
-  const entityId = Number(id);
+  const entityId = id !== "null" ? Number(id) : null;
   
-  const existingPaths: string[] = manifest.map(e => e.existing);
+  const existingPaths: string[] = manifest.filter(e => e.existing).map(e => e.existing);
   const resolvedPaths: string[] = [...existingPaths];
   const newImages: InsertImage[] = [];
 
@@ -38,38 +39,80 @@ export default eventHandler(async (event) => {
       addRandomSuffix: true,
       prefix: 'images',
     });
+    const description = manifest.find(m => m.newFileName === entry.filename)?.description;
     resolvedPaths.push(uploaded.pathname);
-    newImages.push({ name: entry.filename, path: uploaded.pathname});
+    newImages.push({ name: entry.filename, path: uploaded.pathname, description: description});
   }
   const db = useDb();
 
-  let currentImages: { id: number | null; path: string | null, name: string | null }[] = [];
-
-  if (item === 'posts' && entityId !== null)
-    currentImages = await db
-      .select({ id: images.id, path: images.path, name: images.name})
-      .from(postAttachments)
-      .where(eq(postAttachments.postId, entityId))
-      .leftJoin(images, eq(images.id, postAttachments.imageId));
-  else if (item === 'comments' && entityId !== null)
-    currentImages = await db
-      .select({ id: images.id, path: images.path, name: images.name})
-      .from(commentAttachments)
-      .where(eq(commentAttachments.commentId, entityId))
-      .leftJoin(images, eq(images.id, commentAttachments.imageId));
+  let currentImages: { 
+    id: number | null; 
+    path: string | null, 
+    name: string | null , 
+    description?: string | null 
+  }[] = [];
 
   const orphanBlobs: string[] = [];
   let created: Image[] = [];
-  const keptPaths = new Set(resolvedPaths);
 
-  db.transaction((tx) => {    
+  db.transaction((tx) => {
+    /**
+     * Case: There is an actual post to load attahments to
+     */
+    if (item === 'posts' && entityId !== null) {
+      const currPost = tx.select().from(posts).where(eq(posts.id, entityId)).get();
+      if (!currPost)
+        throw createError({ status: 404, statusMessage: "No post to load attachments!" });
+      if (currPost.userId !== userId)
+        throw createError({ status: 401, statusMessage: "Not allowed! Foreigner post to load attachments" });
+
+      currentImages = tx.select({ id: images.id, path: images.path, name: images.name, description: images.description })
+        .from(postAttachments)
+        .where(eq(postAttachments.postId, entityId))
+        .leftJoin(images, eq(images.id, postAttachments.imageId)).all();
+      }
+    /**
+     * TODO: Editing comments - now is unavailable path
+     * Case: There is an actual post to load attahments to
+     */
+    else if (item === 'comments' && entityId !== null) {
+      const currComment = tx.select().from(comments).where(eq(comments.id, entityId)).get();
+      if (!currComment)
+        throw createError({ status: 404, statusMessage: "No comment to load attachments!" });
+      if (currComment.userId !== userId)
+        throw createError({ status: 401, statusMessage: "Not allowed! Foreigner comment to load attachments" });
+
+      currentImages = tx.select({ id: images.id, path: images.path, name: images.name, description: images.description })
+        .from(commentAttachments)
+        .where(eq(commentAttachments.commentId, entityId))
+        .leftJoin(images, eq(images.id, commentAttachments.imageId)).all(); 
+      }       
+    /**
+     * Case: Images already loaded, but no relation to entity
+     * Maby images were loaded but did not pass the entity validation
+     */
+    else if (!currentImages?.length && existingPaths?.length)
+      currentImages = tx.select({ id: images.id, path: images.path, name: images.name, description: images.description })
+      .from(images)
+      .where(inArray(images.path, resolvedPaths)).all();
+
+    const keptPaths = new Set(resolvedPaths);
+    
     const toDelete = currentImages.filter(img => img.path && !keptPaths.has(img.path));    
-    if (toDelete.length) 
-      orphanBlobs.push(...toDelete.map(i => i.path).filter(i => i !== null));{
+    if (toDelete.length)  {
+      orphanBlobs.push(...toDelete.map(i => i.path).filter(i => i !== null));
       tx.delete(images).where(inArray(images.id, toDelete.map(i => i.id).filter(i => i !== null))).run();
     }
     if (newImages.length)
-      created = tx.insert(images).values(newImages).returning().all();
+      created = tx.insert(images).values(newImages).returning().all();    
+
+    if (existingPaths?.length)
+      currentImages.forEach(curr => {
+          const updated = manifest.find(m => m.existing === curr.path && m.description !== curr.description);
+          if (updated && curr.id !== null)
+            tx.update(images).set({ description: updated.description, updatedAt: sql`CURRENT_TIMESTAMP`})
+              .where(eq(images.id, curr.id)).returning().all();
+        });
   });
 
   await Promise.all(orphanBlobs.map(p => blob.del(p)
@@ -77,15 +120,6 @@ export default eventHandler(async (event) => {
       throw createError({ statusCode: 500, statusMessage: 'Unable to delete file', data: e })
     })
   ));
-
-  /**
-   * Case: Images already loaded, but no relation to entity
-   */
-  if (!currentImages?.length && existingPaths?.length)
-    currentImages = await db
-    .select({ id: images.id, path: images.path, name: images.name})
-    .from(images)
-    .where(inArray(images.path, resolvedPaths));
 
   setResponseStatus(event, created.length ? 201 : 200);
   return [...currentImages.filter(i => i.path !== null), ...created];

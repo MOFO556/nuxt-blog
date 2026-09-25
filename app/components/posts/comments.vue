@@ -1,16 +1,60 @@
 <script setup lang="ts">
-import type { Comment } from '~/types/comments';
-import type { Post } from '~/types/posts';
-import ImageView from '../image-view.vue';
+  import type { Comment } from '~/types/comments';
+  import type { ImageMeta } from '~/types/core';
+  import type { Post } from '~/types/posts';
 
-const { post } = defineProps<{post: Post }>();
-const { $api } = useNuxtApp();
-const { loggedIn } = useUserStore();
-const modalOpen = ref(false);
-const modalPicture = ref<string | undefined>(undefined);
+  const { post } = defineProps<{post: Post }>();
+  const { $api } = useNuxtApp();
+  const { loggedIn } = useUserStore();
+  const imagePreviewModal = reactive<{
+        open: boolean;
+        picture?: string;
+        description?: string;
+        comment?: Comment;
+    }>({
+      open: false,
+      picture: undefined,
+      description: undefined,
+      comment: undefined
+    });
+  const { user } = useUserStore();
 
-const { data: comments} = await useAsyncData<Comment[]>(
-  `comments-post${post.id}`, $api.comments.getToPost.bind(null, post.id));
+  const { data: comments} = await useAsyncData<Comment[]>(
+    `comments-post${post.id}`, $api.comments.getToPost.bind(null, post.id));
+
+  const onModalToOpen = (img: ImageMeta, comment: Comment) => {
+    imagePreviewModal.open = true;
+    imagePreviewModal.picture = img.path;
+    imagePreviewModal.description = img.description;
+    imagePreviewModal.comment = comment;
+  }
+
+  const onModalClose = () => {
+    imagePreviewModal.description = undefined;
+    imagePreviewModal.picture = undefined;
+    imagePreviewModal.comment = undefined;
+  }
+
+  const updateImgDescription = (description: string) => {
+    const meta = {
+      currComId: imagePreviewModal.comment?.id,
+      currComPath: imagePreviewModal.picture
+    }
+    if (imagePreviewModal.comment?.id && imagePreviewModal.picture)
+      $api.images.uploadToComment(imagePreviewModal.comment?.id, [{
+        existingPath: imagePreviewModal.picture,
+        description
+      }]).then(() => {
+        const comment = comments.value?.find(c => c.id === meta.currComId);
+        if (comment) {
+          const attachment = comment.attachments?.find(a => a.path === meta.currComPath);
+          if (attachment)
+            attachment.description = description;
+        }
+      });
+  }
+  const debounceFunc = debounce(updateImgDescription, 200);
+
 
 </script>
 
@@ -52,20 +96,23 @@ const { data: comments} = await useAsyncData<Comment[]>(
               :src="item.path.startsWith('/') ? `${item.path}` : `/${item.path}`" 
               sizes="200px sm:50px md:150px"
               loading="lazy"
-              @click="modalPicture = item.path; modalOpen = true"></NuxtImg>
+              @click="onModalToOpen(item, comment)"></NuxtImg>
           </UCarousel>
         </template>
       </UCard>
-    </template>    
-    <UModal v-model:open="modalOpen"
+    </template>
+    <UModal v-model:open="imagePreviewModal.open"
         :ui="{
           header: 'sm:py-0 sm:px-3 min-h-[2rem] border-none justify-end',
           body: 'px-2 pt-0 pb-4 sm:px-4 sm:pt-0 sm:pb-4',
           close: 'top-2 end-2'
         }"
-        @close:prevent="modalPicture = undefined">
+        @after:leave="onModalClose()">
       <template #body>
-        <image-view :imgSrc="modalPicture"></image-view>
+        <images-view :canEditDescription="imagePreviewModal.comment?.userId === user?.id"
+          :imgSrc="imagePreviewModal.picture" 
+          :description="imagePreviewModal.description"
+          @descriptionEditStopped="debounceFunc($event)"></images-view>
       </template>
     </UModal>
   </UContainer>

@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import type { Post } from '~/types/posts';
+  import type { Post } from '~/types/posts';
+
+  definePageMeta({
+    middleware: ['post-owner'],
+  });
 
   const { params } = useRoute();
   const id = computed(() => params.id as string);
-  const { $api } = useNuxtApp();
-
-  const data = await useAsyncDataCatch<Post>
-    (() => `office-post${id.value}`, () => $api.posts.post(id.value), /*{ watch: [ () => useRoute().fullPath]}*/);
+  const data = await useUserPostFetch(id.value);
 </script>
 
 <template>

@@ -6,9 +6,15 @@ import { postPatch, postPatchSchema } from '~~/server/database/posts.validators'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() });
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event) => {  
+  await requireAuth(event);
+  const userId = event.context.user.id;
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse);
   const patch = await useSafeReadValidateBody<postPatch>(event, postPatchSchema);
+
+  if (patch.userId !== userId)
+    throw createError({ statusCode: 401, statusMessage: "Not allowed! Foreigner post" });
+
   const { images }: { images?: { postCover: boolean, id: number }[] } = await readBody(event);
 
   if (Object.keys(patch).length === 0)

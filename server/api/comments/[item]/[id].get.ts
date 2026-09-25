@@ -21,7 +21,8 @@ export default defineEventHandler(async event => {
           with: {
             image: {
               columns: {
-                path: true
+                path: true,
+                description: true
               },
             },
           },
@@ -36,6 +37,7 @@ export default defineEventHandler(async event => {
       ...comment,
       attachments: comment.attachments.map(att => ({
         path: att.image?.path,
+        description: att.image?.description,
       })),
     }));
   // return [    

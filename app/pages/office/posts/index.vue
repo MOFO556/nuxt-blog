@@ -12,7 +12,6 @@
         return { data: ref([]), error: e }
       });
   const blogPost = computed(() => {
-    console.log(posts)
     return posts?.value?.map(p => {
       return {
         ...p,

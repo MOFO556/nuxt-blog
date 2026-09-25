@@ -1,118 +1,147 @@
 <script setup lang="ts">
-import { z } from 'zod';
-import type { UploadMethodResultItem } from '~/types/forms';
-import type { Post, PostImageMeta, PostItemUploadMeta } from '~/types/posts';
+  import { z } from 'zod';
+  import type { UploadMethodResultItem } from '~/types/forms';
+  import type { Post, PostImageMeta, PostItemUploadMeta } from '~/types/posts';
 
-const { title = '', content = '', url = '', images, id } = defineProps<{
-      url?: string,
-      title?: string,
-      content?: string,
-      images?: PostImageMeta[],
-      id?: number
-    }>();
-const coverIndex = ref<number | null>(null);
-    
-const schema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  content: z.string().min(1, 'Content is required'),
-  url: z.string().min(1, 'URL is required'),
-  images: z.array(z.instanceof(Object)).optional()
-});
+  const { title = '', content = '', url = '', images, id } = defineProps<{
+        url?: string,
+        title?: string,
+        content?: string,
+        images?: PostImageMeta[],
+        id?: number
+      }>();
+  const { $api } = useNuxtApp();
+  const coverIndex = ref<number | null>(null);
+  const imagePreviewModal = reactive<{
+        open: boolean;
+        picture?: string;
+        description?: string;
+        file?: File & { description?: string }
+    }>({
+      open: false,
+      picture: undefined,
+      description: undefined,
+      file: undefined
+    });
 
-const form = useForm(
-  {
-    title: title,
-    content: content,
-    url: url,
-    images: [] as File[],
-    ...(id ? { id }: {})
-  },
-  "id",
-  async (res: Post) => {
-    if (id) {
-      await refreshNuxtData(`office-post${id}`);
-      navigateTo({ name: `office-posts-id`, params: { id }});      
-    }
-    else
-      navigateTo({ name: "posts-id", ...(res?.id ? { params: {id: res.id } } : {} )})
-  },
-  schema
-);
+  const onModalToOpen = (file: File & { description?: string }, path: string) => {
+    imagePreviewModal.open = true;
+    imagePreviewModal.picture = path;
+    imagePreviewModal.file = file;
+    imagePreviewModal.description = file.description;
+  }
 
-function preventBubbling(event: MouseEvent) {
-  event.stopPropagation();
-};
+  const onModalClose = () => {
+    if (!!imagePreviewModal.file)
+      imagePreviewModal.file.description = imagePreviewModal.description;
+    imagePreviewModal.description = undefined;
+    imagePreviewModal.picture = undefined;
+    imagePreviewModal.file = undefined;
+  }
+      
+  const schema = z.object({
+    title: z.string().min(1, 'Title is required'),
+    content: z.string().min(1, 'Content is required'),
+    url: z.string().min(1, 'URL is required'),
+    images: z.array(z.instanceof(Object)).optional()
+  });
 
-function setCover(index: number, checked: boolean| "indeterminate", item: File & { postCover?: boolean }) {
-  if (checked)
-    coverIndex.value = index;
-  else if (coverIndex.value === index)
-    coverIndex.value = null;
-}
-
-function removeFileAt(index: number, removeFile: (i: number) => void) {
-  removeFile(index);
-  if (coverIndex.value === null) 
-    return;
-  if (coverIndex.value === index) 
-    coverIndex.value = null;
-  else if (coverIndex.value > index) 
-    coverIndex.value--;
-}
-
-function setSelectedCover() {
-  if (form.value.images === null
-    || coverIndex.value === null)
-    return;
-  else
-    form.value.images?.map((img: File & { postCover?: boolean }, index: number) => {
-      img.postCover = index === coverIndex.value;
-      return img;
-    })
-}
-
-async function loadExistingFiles(urls: PostImageMeta[]) {
-  const files = await Promise.all(
-    urls.map(async (u) => {
-      const url = typeof u === 'string' ? u : u.path;
-      const postCover = typeof u === 'string' ? false : !!u.postCover;
-
-      const file = await urlToFile(url);
-      (file as any).existingPath = url;
-      (file as any).originalName = u.name;
-      (file as any).postCover = postCover;
-      return <PostItemUploadMeta>file;
-    })
+  const form = useForm(
+    {
+      title: title,
+      content: content,
+      url: url,
+      images: [] as File[],
+      ...(id ? { id }: {})
+    },
+    "id",
+    async (res: Post) => {
+      if (id) {
+        await refreshNuxtData(`office-post${id}`);
+        navigateTo({ name: `office-posts-id`, params: { id }});      
+      }
+      else
+        navigateTo({ name: "posts-id", ...(res?.id ? { params: {id: res.id } } : {} )})
+    },
+    schema
   );
 
-  form.value.images = files;
+  function imageDblClick(event: MouseEvent, file: File) {
+    preventBubbling(event);
+  const currentObjectUrl = URL.createObjectURL(file);
+    onModalToOpen(file, currentObjectUrl);
+  }
 
-  const coverIdx = files.findIndex((f: PostItemUploadMeta) => f.postCover);
-  coverIndex.value = coverIdx >= 0 ? coverIdx : null;
-}
+  function setCover(index: number, checked: boolean| "indeterminate", item: File & { postCover?: boolean }) {
+    if (checked)
+      coverIndex.value = index;
+    else if (coverIndex.value === index)
+      coverIndex.value = null;
+  }
 
-onMounted(() => {
-  if (images?.length) 
-    loadExistingFiles(images);
-});
+  function removeFileAt(index: number, removeFile: (i: number) => void) {
+    removeFile(index);
+    if (coverIndex.value === null) 
+      return;
+    if (coverIndex.value === index) 
+      coverIndex.value = null;
+    else if (coverIndex.value > index) 
+      coverIndex.value--;
+  }
 
-function updatePathsOnUpload(paths: Record<string, UploadMethodResultItem[]>) {
-  Object.keys(paths)
-    .forEach(async formKey => {
-      if (paths[formKey])
-        await loadExistingFiles(paths[formKey]);
-    })
-}
+  function setSelectedCover() {
+    if (form.value.images === null
+      || coverIndex.value === null)
+      return;
+    else
+      form.value.images?.map((img: File & { postCover?: boolean }, index: number) => {
+        img.postCover = index === coverIndex.value;
+        return img;
+      })
+  }
 
+  async function loadExistingFiles(urls: PostImageMeta[]) {
+    const files = await Promise.all(
+      urls.map(async (u) => {
+        const url = typeof u === 'string' ? u : u.path;
+        const postCover = typeof u === 'string' ? false : !!u.postCover;
+
+        const file = await urlToFile(url);
+        (file as any).existingPath = url;
+        (file as any).originalName = u.name;
+        (file as any).description = u.description;
+        (file as any).postCover = postCover;
+        return <PostItemUploadMeta>file;
+      })
+    );
+
+    form.value.images = files;
+
+    const coverIdx = files.findIndex((f: PostItemUploadMeta) => f.postCover);
+    coverIndex.value = coverIdx >= 0 ? coverIdx : null;
+  }
+
+  onMounted(() => {
+    if (images?.length) 
+      loadExistingFiles(images);
+  });
+
+  function updatePathsOnUpload(paths: Record<string, UploadMethodResultItem[]>) {
+    Object.keys(paths)
+      .forEach(async formKey => {
+        if (paths[formKey])
+          await loadExistingFiles(paths[formKey]);
+      })
+  }
 </script>
 
 <template>  
   <UForm :state="form.value"
     :schema="schema"
     @submit.prevent="setSelectedCover(); form.submit(
-        id ? useNuxtApp().$api.posts.edit : useNuxtApp().$api.posts.add,
+        id ? $api.posts.edit : $api.posts.add,
         { 
-          uploadMethod: { images: useNuxtApp().$api.images.uploadToPost },          
+          uploadMethod: { images: $api.images.uploadToPost },          
           onUploadSucseed: (e) => updatePathsOnUpload(e)
         }
       )"
@@ -173,7 +202,10 @@ function updatePathsOnUpload(paths: Record<string, UploadMethodResultItem[]>) {
             <div v-for="(item, index) in files" :key="index"
               class="flex items-center justify-end gap-2 w-full">
               <label :for="`pick-cover-${index}`" class="no-text-selection"
-                @click="preventBubbling">{{ item.name }}</label>
+                @dblclick.prevent="imageDblClick($event, item)"
+                @click.prevent="preventBubbling">
+                {{ item.name }}
+              </label>
               <UCheckbox :id="`pick-cover-${index}`"
                 label="Cover"
                 :model-value="coverIndex === index"
@@ -190,9 +222,24 @@ function updatePathsOnUpload(paths: Record<string, UploadMethodResultItem[]>) {
               />
             </div>
           </div>
-        </template>
-                
+        </template>                
       </UFileUpload>
+      <UModal v-model:open="imagePreviewModal.open"
+          :ui="{
+            header: 'sm:py-0 sm:px-3 min-h-[2rem] border-none justify-end',
+            body: 'px-2 pt-0 pb-4 sm:px-4 sm:pt-0 sm:pb-4',
+            close: 'top-2 end-2'
+          }"
+          
+          @after:leave="onModalClose">
+        <template #body>
+          <images-view :imgSrc="imagePreviewModal.picture"
+            :canEditDescription="true"
+            :noProvider="true"
+            :description="imagePreviewModal.description"
+            @descriptionChanged="imagePreviewModal.description = $event"></images-view>
+        </template>
+      </UModal>
 
     </UFormField>
 

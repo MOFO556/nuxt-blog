@@ -19,7 +19,7 @@ export const useUserStore = defineStore('UserStore', {
     },
     setUser(data: User) {
       if (data)
-        this.user = { login: data.login };
+        this.user = { login: data.login, id: data.id };
     },
     resetInit() {
       this.inited = false;

@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { Comment } from '~/types/comments'
-import type { SpreadParamsMethod } from '~/types/forms';
-import z from 'zod';
+  import z from 'zod';
 
   const { postId } = defineProps<{ postId: number }>();
 
   const fileUploadRef = useTemplateRef('fileUploadRef');
   const formRef = useTemplateRef('formRef');
   const showFiles = computed(() => !!form.value.images?.length);
+  const descriptions = new WeakMap<File, Ref<string>>()
+
   const { $api } = useNuxtApp();
 
   const schema = z.object({
@@ -29,7 +29,7 @@ import z from 'zod';
     {
       postId,
       text: '',
-      images: [],
+      images: [] as any[],
       id: ''
     },
     "id",
@@ -41,6 +41,30 @@ import z from 'zod';
     },
     schema
   );
+
+  const createPathFromFile = (file: File) => {
+    return URL.createObjectURL(file);
+  };
+
+  function initDescription(files: File[] | null | undefined) {
+    form.value.images = files ?? []
+    for (const f of form.value.images) 
+      getDescription(f);
+  };
+
+  function getDescription(f: File) {
+    if (!descriptions.has(f)) 
+      descriptions.set(f, ref(''))
+    return descriptions.get(f)!
+  };
+
+  function setFileDescription(file: File) {
+    (file as any).description = getDescription(file).value;
+  };
+
+  function filesTypeGuard(files: unknown[]): files is File[] {
+    return !files?.length || (Array.isArray(files) && files.every(f =>f instanceof File));
+  }
 
           // :avatar="{
           //   src: 'images/pwa-icon-d05ca427.png',
@@ -90,16 +114,43 @@ import z from 'zod';
           :disabled="!form.value.text && !form.value.images?.length">
         </UButton>
     </UContainer>
-    <div v-show="showFiles">
-      <UFileUpload class="w-full" 
+    <div 
+      v-if="filesTypeGuard(form.value.images)"
+      v-show="showFiles">    
+      <UFileUpload class="w-full"
         v-model="form.value.images"
-        :ui="{
-          file: 'h-50'
-        }"
-        size="xs"
-        ref="fileUploadRef"
         accept="image/jpeg, image/png, image/webp"
-        multiple></UFileUpload> 
+        multiple
+        placeholder="Select images"
+        ref="fileUploadRef"
+        @update:model-value="initDescription">
+
+        <template #files="{ files, removeFile }">
+          <div class="flex flex-row gap-2 w-full">
+            <div v-for="(item, index) in files" :key="index"
+              class="flex flex-col items-center justify-center gap-2 w-full relative">
+              <div class="relative">
+                <img class="p-2 size-50 rounded-xl"
+                  :src="createPathFromFile(item)"
+                  @click.prevent="preventBubbling"/>
+                <UButton class="rounded-full absolute top-0 right-0 size-5 flex items-center justify-center text-sm"
+                  icon="i-lucide-x"
+                  color="neutral"
+                  variant="outline"
+                  @click.stop.prevent="removeFile(index)"
+                  @mousedown.stop
+                  @pointerdown.stop
+                />                
+              </div>
+              <images-description class="w-50"
+                :canEdit="true"
+                v-model="getDescription(item).value"
+                @update:model-value="setFileDescription(item)"
+                @click.prevent="preventBubbling"></images-description>
+            </div>
+          </div>
+        </template>
+      </UFileUpload>
     </div>
   </UForm>
 </template>

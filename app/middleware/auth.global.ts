@@ -7,10 +7,10 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     await until(() => userStore.inited).toBeTruthy();
 
   const isAuthenticated = userStore.loggedIn;
-
+  
   if (to.matched.some(rec => rec.meta.auth) && !isAuthenticated)
     return navigateTo('/auth/login');
-  if (to.matched.some(rec => rec.meta.guest) && isAuthenticated) {
+  else if (to.matched.some(rec => rec.meta.guest) && isAuthenticated) {
     return navigateTo('/');
   }
   else

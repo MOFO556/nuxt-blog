@@ -6,7 +6,7 @@ export type Comment = {
   content: string,
   createdAt: string,
   updatedAt: string,
-  userId: string,
+  userId: number,
   user: Omit<User, "password">
   attachments?: ImageMeta[]
 }

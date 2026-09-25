@@ -107,10 +107,9 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
         err.format((f) => {
           f.path.forEach(p => {            
             setError(p as keyof TFormData, f.message);
-          })
-          console.log(f);
+          });
         })
-        console.log('Kuku', err)
+        console.log('Form submit zod error', err.message)
         // err.errors.forEach((error) => {
         //   const field = error.path[0] as string;
         //   errors[field] = error.message;

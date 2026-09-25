@@ -5,7 +5,7 @@ export type Post = PostInsert & {
   id: number,
   createdAt: string,
   updatedAt: string,
-  userId: string,
+  userId: number,
   user: Omit<User, "password">
   attachments?: PostImageMeta[]
 }
@@ -13,7 +13,7 @@ export type Post = PostInsert & {
 export type PostImageMeta = ImageMeta & { postCover?: boolean };
 export type PostItemUploadMeta = ItemUploadMeta & { postCover?: boolean };
 
-export interface PostInsert {
+export type PostInsert = {
   url: string,
   title: string,
   content: string

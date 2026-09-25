@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
         columns: { imageId: true, postCover: true },
         with: {
           image: {
-            columns: { path: true }
+            columns: { path: true, description: true }
           }
         }
       }
@@ -43,7 +43,8 @@ export default defineEventHandler(async (event) => {
       ...rawPost,
       attachments: rawPost.attachments.map(att => ({
         path: att.image?.path,
-        postCover: att?.postCover
+        postCover: att?.postCover,
+        description: att.image?.description
       })),
     }));
 

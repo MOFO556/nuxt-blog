@@ -5,7 +5,6 @@
   const { data: posts, error } = await useAsyncData<Post[]>
     ("posts", $api.posts.all);
   const blogPost = computed(() => {
-    console.log(posts)
     return posts.value?.map(p => {
       return {
         ...p,

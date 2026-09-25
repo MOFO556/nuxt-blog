@@ -4,6 +4,7 @@ import type { Post } from '~/types/posts';
   const { params } = useRoute();
   const id = computed(() => params.id as string);
   const { $api } = useNuxtApp();
+  const { user } = useUserStore();
 
   const data = await useAsyncDataCatch<Post>
     (() => `post${id.value}`, () => $api.posts.post(id.value));
@@ -11,14 +12,6 @@ import type { Post } from '~/types/posts';
   const { nextPostId, prevPostId } = usePostsStore();
   const nextId = computed(() => nextPostId(Number(id.value)));
   const prevId = computed(() => prevPostId(Number(id.value)));
-
-  // if (error.value?.status === 404)  
-  //   throw createError({
-  //     fatal: true,
-  //     status: 404,
-  //     statusText: 'Post Not Found',
-  //   })
-
 </script>
 <template>
   <UPageBody>
@@ -64,6 +57,13 @@ import type { Post } from '~/types/posts';
             Next post
           </ULink>
         </template>
+        <client-only v-if="user?.id === data.userId"> | 
+          <ULink class="flex gap-0.5 items-center w-fit" 
+            :to="{ name: 'office-posts-id-edit', params: { id: data.id }}">
+            <UIcon name="i-lucide-file-pen-line" size="15" />
+            Edit
+          </ULink>          
+        </client-only>
       </nav>
 
     </UContainer>

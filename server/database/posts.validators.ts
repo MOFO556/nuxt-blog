@@ -12,7 +12,8 @@ export const postPatchSchema = createUpdateSchema(posts,{
   url: z.url().max(255),
   title: s => s.min(5).max(255),
   content: s => s.min(25).max(255),
-}).pick({ url: true, title: true, content: true });
+  userId: s => s
+}).pick({ url: true, title: true, content: true, userId: true });
 
 export const postSchema = createSelectSchema(posts);
 
