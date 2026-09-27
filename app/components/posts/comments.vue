@@ -60,17 +60,15 @@
 
 <template>
   <UContainer>
-    <ClientOnly>      
+    <ClientOnly>
       <comment-form v-if="loggedIn" class="my-5" :postId="post.id"></comment-form>
     </ClientOnly>
     <template v-if="!!comments?.length">
       <h1 class="mt-5">Comments</h1>
       <UCard v-for="comment in comments" :key="comment.id"
+        class="m-2"
         variant="soft"
-        :ui="{
-          header: 'p-2 sm:px-2'
-        }"
-        class="m-2">
+        :ui="{ header: 'p-2 sm:px-2' }">
         <template #header>
           <UContainer class="flex gap-2 px-0 sm:px-0 lg:px-0 items-center justify-between text-xs">
             <ClientOnly>

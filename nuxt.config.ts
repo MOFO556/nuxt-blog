@@ -18,6 +18,12 @@ export default defineNuxtConfig({
       driver: 'fs',
       dir: '.data/files'
     }
+  },  
+  icon: {
+    clientBundle: {
+      scan: true,
+    },
+    serverBundle: false,
   },
   image: {
     ipx: {
@@ -59,7 +65,12 @@ export default defineNuxtConfig({
     '/auth/**': {
       ssr: false
     }
-  }
+  },
+  ui: {
+    experimental: {
+      componentDetection: true,
+    },
+  },
   /* routeRules: {
     '/posts/**': {
       ssr: false

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
 import { postAttachments, posts } from '~~/server/database/schema';
@@ -11,23 +11,25 @@ export default defineEventHandler(async (event) => {
   const userId = event.context.user.id;
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse);
   const patch = await useSafeReadValidateBody<postPatch>(event, postPatchSchema);
-
-  if (patch.userId !== userId)
-    throw createError({ statusCode: 401, statusMessage: "Not allowed! Foreigner post" });
-
   const { images }: { images?: { postCover: boolean, id: number }[] } = await readBody(event);
 
   if (Object.keys(patch).length === 0)
     throw createError({ statusCode: 400, statusMessage: 'Empty patch' });
 
-  const [updated] = await useDb()
-    .update(posts)
-    .set(patch)
-    .where(eq(posts.id, id))
-    .returning();
+  const updated = await useDb().transaction(tx => {
+    const post = tx.select().from(posts).where(eq(posts.id, id)).get();
+      
+    if (!post)
+      throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  if (!updated)
-    throw createError({ statusCode: 404, statusMessage: 'Not found' });
+    if (post.userId !== userId)
+      throw createError({ statusCode: 401, statusMessage: "Not allowed! Foreigner post" });
+
+    return tx.update(posts)
+      .set({...patch, updatedAt: sql`CURRENT_TIMESTAMP`})
+      .where(eq(posts.id, id)).returning().get();
+  });
+
 
   if (images?.length)
     try {

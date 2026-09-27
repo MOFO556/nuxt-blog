@@ -1,12 +1,9 @@
 <script setup lang="ts">
-  const { canEdit = false } = defineProps<{ canEdit: boolean }>()
   const description = defineModel<string>();
+  const { canEdit = false } = defineProps<{ canEdit: boolean }>()
   const readMode = ref(!canEdit || !!description.value);
   const inputRef = useTemplateRef('inputRef');
   const emit = defineEmits(['editStopped']);
-  function descriptionChanged() {
-    emit('editStopped', description.value);
-  }
   const onEnterEditMode = () => {
     if (!canEdit)
       return;
