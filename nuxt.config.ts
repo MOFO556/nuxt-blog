@@ -49,7 +49,7 @@ export default defineNuxtConfig({
   nitro: {
     experimental: { tasks: true },
     scheduledTasks: {
-      '*/10 * * * *': ['posts:enrich'],
+      '*/10 * * * *': ['posts:enrich', 'cleanup:orphan-images'],
     }
   },
   modules: [
