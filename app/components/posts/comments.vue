@@ -22,6 +22,20 @@
   const { data: comments} = await useAsyncData<Comment[]>(
     `comments-post${post.id}`, $api.comments.getToPost.bind(null, post.id));
 
+  const { on } = useRealtime();
+
+  const off = on(`post:${post.id}`, (payload) => {
+    if (payload.type === 'comment:created') {
+      const { comment } = payload;
+      if (comments.value?.some(c => c.id === comment.id)) 
+        return;
+
+      comments.value = [comment, ...(comments.value ?? [])];
+    };
+  });
+  
+  onBeforeUnmount(off);
+
   const onModalToOpen = (img: Partial<ImageMeta>, comment: Comment) => {
     imagePreviewModal.open = true;
     imagePreviewModal.picture = img.path;
@@ -85,7 +99,7 @@
         </template>
 
         <template #footer v-if="comment.attachments?.length">
-          <UCarousel class="mt-2 w-full mx-auto"
+          <LazyUCarousel class="mt-2 w-full mx-auto"
             v-slot="{ item }"
             :items="comment.attachments"
             :ui="{ item: 'basis-1/3', container: 'justify-center' }">
@@ -94,7 +108,7 @@
               sizes="200px sm:50px md:150px"
               loading="lazy"
               @click="onModalToOpen(item, comment)"></NuxtImg>
-          </UCarousel>
+          </LazyUCarousel>
         </template>
       </UCard>
     </template>
@@ -106,10 +120,10 @@
         }"
         @after:leave="onModalClose()">
       <template #body>
-        <images-view :canEditDescription="imagePreviewModal.comment?.userId === user?.id"
+        <lazy-images-view :canEditDescription="imagePreviewModal.comment?.userId === user?.id"
           :imgSrc="imagePreviewModal.picture" 
           :description="imagePreviewModal.description"
-          @descriptionEditStopped="debounceFunc($event)"></images-view>
+          @descriptionEditStopped="debounceFunc($event)"></lazy-images-view>
       </template>
     </UModal>
   </UContainer>

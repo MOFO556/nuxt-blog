@@ -35,7 +35,6 @@
     },
     "id",
     async (res) => {
-      //TODO: Add sockets
       form.value.text = '';
       form.value.images = [];
       await refreshNuxtData(`comments-post${postId}`);
@@ -146,11 +145,11 @@
                   @pointerdown.stop
                 />                
               </div>
-              <images-description class="w-50"
+              <lazy-images-description class="w-50"
                 :canEdit="true"
                 v-model="getDescription(item).value"
                 @update:model-value="setFileDescription(item)"
-                @click.prevent="preventBubbling"></images-description>
+                @click.prevent="preventBubbling"></lazy-images-description>
             </div>
           </div>
         </template>

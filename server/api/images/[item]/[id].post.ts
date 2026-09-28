@@ -73,7 +73,7 @@ export default eventHandler(async (event) => {
       }
     /**
      * TODO: Editing comments - now is unavailable path
-     * Case: There is an actual post to load attahments to
+     * Case: There is an actual comment to load attahments to
      */
     else if (item === 'comments' && entityId !== null) {
       const currComment = tx.select().from(comments).where(eq(comments.id, entityId)).get();

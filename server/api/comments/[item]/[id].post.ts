@@ -42,6 +42,8 @@ export default defineEventHandler(async (event) => {
         throw error;
       }
 
+  broadcast(`post:${id}`, { type: 'comment:created', comment: { ...created, user: event.context.user } });
+  
   setResponseStatus(event, 201)
   return created;
 })

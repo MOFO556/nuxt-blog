@@ -47,7 +47,7 @@ export default defineNuxtConfig({
     provider: 'nuxtHubBlobIpx',    
   },
   nitro: {
-    experimental: { tasks: true },
+    experimental: { tasks: true, websocket: true },
     scheduledTasks: {
       '*/10 * * * *': ['posts:enrich', 'cleanup:orphan-images'],
     }
@@ -56,6 +56,7 @@ export default defineNuxtConfig({
     '@nuxthub/core',
     '@nuxt/ui',
     '@nuxt/fonts',
+    '@nuxt/hints',
     '@pinia/nuxt',
     '@nuxt/image', 
     "nuxt-auth-utils",

@@ -8,6 +8,7 @@ export type Comment = {
   createdAt: string,
   updatedAt: string,
   userId: number,
+  postId: number,
   user: Omit<User, "password">
   attachments?: Partial<ImageMeta>[]
 }
