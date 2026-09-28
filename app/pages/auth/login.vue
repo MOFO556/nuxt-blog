@@ -1,26 +1,34 @@
 <script setup lang="ts">
-import { z } from 'zod';
-import type { SpreadParamsMethod } from '~/types/forms';
-import type { User, UserResp } from '~/types/user';
+  import { z } from 'zod';
+  import type { User, UserResp } from '~/types/user';
 
-// const login = ref("");
-// const password = ref("");
-
-// async function onSubmit(event: any){
-//   useNuxtApp()
-//   .$api.auth.login(login.value, password.value);
-// }
-
-const schema = z.object({
-  login: z.string().min(1, 'Login is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-})
-
+  const schema = z.object({
+    login: z.string().min(1, 'Login is required'),
+    password: z.string().optional().default(''),
+    usePasskey: z.boolean().default(false)
+  }).superRefine(({ password, usePasskey }, ctx) => {
+    const hasPassword = password.length > 0;
+    if (!hasPassword && !usePasskey) {
+      ctx.addIssue({
+        code: "custom",
+        path: ['password'],
+        message: 'Enter a password or enable passkey',
+      });
+    }
+    if (hasPassword && password.length < 6) {
+      ctx.addIssue({
+        code: "custom",
+        path: ['password'],
+        message: 'Password must be at least 6 characters',
+      });
+    }
+  });
 
   const form = useForm(
     {
       login: '',
       password: '',
+      usePasskey: false
     },
     undefined,
     () => { navigateTo("/") },
@@ -31,7 +39,11 @@ const schema = z.object({
 <template>
   <UForm :state="form.value"
     :schema="schema"
-    @submit.prevent="form.submit(useNuxtApp().$api.auth.login as SpreadParamsMethod<User, UserResp>, { useObjectArgs: false })"
+    @submit.prevent="form.submit(
+      form.value.usePasskey 
+        ? $api.auth.loginPassKey
+        : $api.auth.login
+    )"
     class="max-w-md mx-auto p-6 space-y-4">
     <UFormField  class="w-full relative pb-2"
       label="Login" 
@@ -52,13 +64,19 @@ const schema = z.object({
       :error="form.errors.password">
       <UInput class="w-full"
         v-model="form.value.password" 
+        :disabled="form.value.usePasskey"
         type="password"
         placeholder="••••••••"
         icon="i-heroicons-lock-closed"/>
     </UFormField >
 
+    <USwitch v-model="form.value.usePasskey"
+      label="Log in without password" />
+
     <UButton type="submit" 
       :loading="form.processing"
       block>Sign In</UButton>
+
+    <pre class="flex justify-between">Don't have an account? <b>-</b> <NuxtLink class="text-primary" :to="{name: 'auth-register'}">Sign up</NuxtLink></pre>
   </UForm>
 </template>

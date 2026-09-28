@@ -13,6 +13,9 @@ export default defineNuxtConfig({
     '#components': fileURLToPath(new URL('../app/components', import.meta.url)),
     '#components/*': fileURLToPath(new URL('../app/components/*', import.meta.url)),
   },
+  auth: {
+    webAuth: true
+  },
   hub: {
     blob: {
       driver: 'fs',
@@ -29,15 +32,19 @@ export default defineNuxtConfig({
     ipx: {
       fs: {        
         dir: resolve(process.cwd(), '.data/files')
-      }
+      },
     },
     providers: {
       nuxtHubBlobIpx: {
         name: 'nuxtHubBlobIpx',
         provider: '#server/providers/nuxtHubBlobIpx.ts',
       },
+      none: {
+        name: 'none',
+        provider: 'none',
+      },
     },
-    provider: 'nuxtHubBlobIpx',
+    provider: 'nuxtHubBlobIpx',    
   },
   nitro: {
     experimental: { tasks: true },
@@ -50,13 +57,19 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@nuxt/fonts',
     '@pinia/nuxt',
-    '@nuxt/image'
+    '@nuxt/image', 
+    "nuxt-auth-utils",
   ],
   runtimeConfig: {
     public: {
       dbFile: process.env.NUXT_DB_FILE || './.data/db/stash.db',
       API_URL: 'http://localhost:5000'
-    }
+    },
+    webauthn: {
+      rpID: 'localhost',
+      rpName: 'Your App Name',
+      origin: 'http://localhost:3000',
+    },
   },
   routeRules: {
     '/office/**': {

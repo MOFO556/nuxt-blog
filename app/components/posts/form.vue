@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { z } from 'zod';
+import type { ItemUploadMeta } from '~/types/core';
   import type { UploadMethodResultItem } from '~/types/forms';
   import type { Post, PostImageMeta, PostItemUploadMeta } from '~/types/posts';
 

@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { users } from "./users";
+import { users } from "./auth/users";
 import { posts } from "./posts";
 import { images } from "./images";
 

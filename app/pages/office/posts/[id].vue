@@ -1,6 +1,4 @@
 <script setup lang="ts">
-  import type { Post } from '~/types/posts';
-
   definePageMeta({
     middleware: ['post-owner'],
   });

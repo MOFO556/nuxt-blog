@@ -2,7 +2,7 @@ import { eq, SQL } from 'drizzle-orm';
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { H3Event } from "h3";
 import { AUTH_JWT_ALG, AUTH_JWT_SECRET } from '../config/auth';
-import { publicUserColumns, users } from '../database/schema/users';
+import { publicUserColumns, User, users } from '../database/schema/auth/users';
 
 export async function requireAuth(event: H3Event) {
   const { auth, user } = await checkAuth(event);  
@@ -14,7 +14,7 @@ export async function requireAuth(event: H3Event) {
 
 export async function checkAuth(
     event: H3Event
-  ): Promise<{ auth: boolean, user?: typeof publicUserColumns }> {
+  ): Promise<{ auth: boolean, user?: {[K in keyof typeof publicUserColumns]: User[K]} & { avatar?: string } }> {
 	const header = getHeader(event, 'Authorization') ?? '';
 	const [ _, token ] = header.split(' ');
 
@@ -31,11 +31,17 @@ export async function checkAuth(
 
 export async function getUserByFilter(
     filter: SQL
-  ): Promise<typeof publicUserColumns | undefined> {
-  return await useDb().query.users.findFirst({
+  ): Promise<{[K in keyof typeof publicUserColumns]: User[K]} & { avatar?: string } | undefined> {
+   const user = await useDb().query.users.findFirst({
     where: filter,
-    columns: publicUserColumns
-  }) as typeof publicUserColumns | undefined;
+    columns: publicUserColumns,
+    with: {
+      avatar: {
+        columns: { path: true }
+      }
+    }
+  });
+  return user?.id ? { id: user.id, login: user.login, avatar: user.avatar?.path } : undefined;
 }
 
 function verifyToken(token: string): JwtPayload | false {
@@ -49,6 +55,13 @@ function verifyToken(token: string): JwtPayload | false {
 
 async function getUserByToken(
     token: JwtPayload
-  ): Promise<typeof publicUserColumns | undefined> {
+  ): Promise<{[K in keyof typeof publicUserColumns]: User[K]} & { avatar?: string } | undefined> {
   return await getUserByFilter(eq(users.id, token.id));
+}
+
+export function signToken(userId: number): string {
+  return jwt.sign({ id: userId }, AUTH_JWT_SECRET, {
+    algorithm: AUTH_JWT_ALG,
+    expiresIn: '7d',
+  });
 }

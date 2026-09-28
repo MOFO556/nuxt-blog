@@ -1,14 +1,27 @@
 import { relations } from 'drizzle-orm';
-import { users } from './users';
+import { credentials } from './auth/credentials';
+import { users } from './auth/users';
 import { posts } from './posts';
 import { images } from './images';
 import { comments } from './comments';
 import { commentAttachments } from './commentsAttachment';
 import { postAttachments } from './postsAttachment';
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   posts: many(posts),
-  comments: many(comments)
+  comments: many(comments),
+  credentials: many(credentials),
+  avatar: one(images, {
+    fields: [users.avatar],
+    references: [images.id]
+  })
+}));
+
+export const credentialsRelations = relations(credentials, ({ one }) => ({
+  user: one(users, {
+    fields: [credentials.userId],
+    references: [users.id],
+  }),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -24,6 +37,7 @@ export const imagesRelations = relations(images, ({ many }) => ({
   comments: many(comments),
   commentAttachments: many(commentAttachments),
   postAttachments: many(postAttachments),
+  users: many(users)
 }));
 
 export const commentsRelations = relations(comments, ({one, many}) => ({

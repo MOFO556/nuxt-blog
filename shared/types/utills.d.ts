@@ -13,3 +13,13 @@ export type SingleKeyOfType<T, V> = KeysOfType<T, V> extends infer K
       : never
     : never
   : never;
+
+export type Unwrap<T> = T extends infer U | undefined | null ? U : T;
+
+export type NonNullableProps<T> = {
+  [K in keyof T as null extends T[K]
+    ? never
+    : undefined extends T[K]
+      ? never
+      : K]: T[K];
+};

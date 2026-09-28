@@ -10,6 +10,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     if (!post)
       throw abortNavigation(createError({ statusCode: 404, statusText: "No post found!" }));
     else if (post.value?.userId !== userStore.user?.id)
-      throw abortNavigation(createError({ statusCode: 401, statusText: "Not allowed! Foreigner post" }));
+      throw abortNavigation(createError({ statusCode: 403, statusText: "Not allowed! Foreigner post" }));
 
 });

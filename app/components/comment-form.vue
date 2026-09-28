@@ -1,12 +1,13 @@
 <script setup lang="ts">
   import z from 'zod';
-
+  
   const { postId } = defineProps<{ postId: number }>();
 
   const fileUploadRef = useTemplateRef('fileUploadRef');
   const formRef = useTemplateRef('formRef');
   const showFiles = computed(() => !!form.value.images?.length);
-  const descriptions = new WeakMap<File, Ref<string>>()
+  const descriptions = new WeakMap<File, Ref<string>>();
+  const { user } = useUserStore();
 
   const { $api } = useNuxtApp();
 
@@ -27,10 +28,10 @@
 
   const form = useForm(
     {
+      id: undefined,
       postId,
       text: '',
       images: [] as any[],
-      id: ''
     },
     "id",
     async (res) => {
@@ -66,10 +67,6 @@
     return !files?.length || (Array.isArray(files) && files.every(f =>f instanceof File));
   }
 
-          // :avatar="{
-          //   src: 'images/pwa-icon-d05ca427.png',
-          //   loading: 'lazy'
-          // }"
 
 </script>
 
@@ -79,7 +76,9 @@
     @submit.prevent="form.submit(
         $api.comments.postToPost, 
         {
-          uploadMethod: { images: $api.images.uploadToComment }
+          uploadMethod: { 
+            images: $api.images.uploadToComment
+          }
         }
       )">
     <UContainer class="flex flex-row gap-2 items-center"
@@ -89,6 +88,11 @@
         :error="form.errors.text || form.errors.images">
           <UTextarea class="w-full"
             v-model="form.value.text"
+            :avatar="{
+              src:  user?.avatar ? user?.avatar?.startsWith('/') ? `${user.avatar}` : `/${user.avatar}` : '/images/default-avatar.png',
+              loading: 'lazy',
+              as: { img: 'img' }
+            }"
             :rows="1"
             :autoresize="true"
             :ui="{

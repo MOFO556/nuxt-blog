@@ -1,5 +1,9 @@
 @use "sass:math";
 
+html.dark {  
+  color-scheme: dark;
+}
+
 .no-text-selection {
   -webkit-touch-callout: none;
   -webkit-user-select: none;

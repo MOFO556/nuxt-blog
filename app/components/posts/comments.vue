@@ -22,7 +22,7 @@
   const { data: comments} = await useAsyncData<Comment[]>(
     `comments-post${post.id}`, $api.comments.getToPost.bind(null, post.id));
 
-  const onModalToOpen = (img: ImageMeta, comment: Comment) => {
+  const onModalToOpen = (img: Partial<ImageMeta>, comment: Comment) => {
     imagePreviewModal.open = true;
     imagePreviewModal.picture = img.path;
     imagePreviewModal.description = img.description;
@@ -55,7 +55,6 @@
   }
   const debounceFunc = debounce(updateImgDescription, 200);
 
-
 </script>
 
 <template>
@@ -73,7 +72,7 @@
           <UContainer class="flex gap-2 px-0 sm:px-0 lg:px-0 items-center justify-between text-xs">
             <ClientOnly>
               <UContainer class="flex gap-2 items-center justify-start">              
-                <!-- <UAvatar src="images/pwa-icon-d05ca427.png" size="xs"></UAvatar> -->
+                <UAvatar :src="comment.user.avatar || '/images/default-avatar.png'" provider="none" size="xs"></UAvatar>
                 <pre>{{ comment.user.login }}</pre>
               </UContainer>              
             </ClientOnly>
@@ -91,7 +90,7 @@
             :items="comment.attachments"
             :ui="{ item: 'basis-1/3', container: 'justify-center' }">
             <NuxtImg class="expandable"
-              :src="item.path.startsWith('/') ? `${item.path}` : `/${item.path}`" 
+              :src="item.path?.startsWith('/') ? `${item.path}` : `/${item.path}`" 
               sizes="200px sm:50px md:150px"
               loading="lazy"
               @click="onModalToOpen(item, comment)"></NuxtImg>

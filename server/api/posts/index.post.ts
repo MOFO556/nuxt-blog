@@ -1,12 +1,12 @@
 import { Post, postAttachments, posts } from '~~/server/database/schema';
 import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
-import { postInput, postInsertSchema } from '~~/server/database/posts.validators';
+import { postInsertSchema } from '~~/server/database/posts.validators';
 import { requireAuth } from '~~/server/utils/auth';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const userId = event.context.user.id;
-  const input = await useSafeReadValidateBody<postInput>(event, postInsertSchema);
+  const input = await useSafeReadValidateBody(event, postInsertSchema);
   const { images }: { images?: { postCover: boolean, id: number }[] } = await readBody(event);
   let created: Post | undefined;
 

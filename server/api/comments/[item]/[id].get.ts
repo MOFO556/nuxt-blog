@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import z from "zod";
 import { comments, publicUserColumns } from "~~/server/database/schema";
 
@@ -15,6 +15,13 @@ export default defineEventHandler(async event => {
       with: {
         user: {
           columns: publicUserColumns,
+          with: {
+            avatar: {
+              columns: {
+                path: true, 
+              }
+            }
+          }
         },
         attachments: {
           columns: { imageId: true },
@@ -27,21 +34,26 @@ export default defineEventHandler(async event => {
             },
           },
         },
-      },
+      },      
+      orderBy: desc(comments.createdAt)
     });
 
   if (!commentsArray)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  return commentsArray.map(comment => ({
+  return commentsArray.map(comment => {
+    const avatar = comment.user.avatar?.path;
+    return {
       ...comment,
+      user: {
+        id: comment.user.id,
+        login: comment.user.login,
+        avatar
+      },
       attachments: comment.attachments.map(att => ({
         path: att.image?.path,
         description: att.image?.description,
       })),
-    }));
-  // return [    
-	// 	{ id: 1, text: `Comment for ${item} ${id}` },
-	// 	{ id: 2, text: `Comment other text for ${item} ${id}` }
-  // ]
+    }
+  });
 })

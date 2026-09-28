@@ -26,7 +26,6 @@
         Next post
       </ULink>
     </template>
-    <client-only>
       <template v-if="showEdit"> | 
         <ULink class="flex gap-0.5 items-center w-fit" 
           :to="{ name: 'office-posts-id-edit', params: { id: postId }}">
@@ -34,6 +33,5 @@
           Edit
         </ULink>
       </template>
-    </client-only>
   </nav>
 </template>

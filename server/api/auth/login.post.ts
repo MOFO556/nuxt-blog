@@ -5,10 +5,8 @@ import { AUTH_JWT_SECRET, AUTH_JWT_ALG, AUTH_JWT_LIFETIME } from "~~/server/conf
 import { users } from "~~/server/database/schema";
 import { userSchema } from "~~/server/database/users.validators";
 
-export default defineEventHandler(async event => {
-  
+export default defineEventHandler(async event => {  
   const body = await readBody(event);
-
   try {
     userSchema.parse(body);
   } catch (error: any) {
@@ -19,14 +17,17 @@ export default defineEventHandler(async event => {
     throw createError({ statusCode: 422, statusMessage: 'Invalid data', data: errorsObj  });
   }
 
-  const user = await await useDb().query.users.findFirst({
+  const user = await useDb().query.users.findFirst({
       where: eq(users.login, body.login),
     });
 
-  if (!user || !(await compare(body.password, user.password)))
-      throw createError({ statusCode: 422, statusMessage: 'Wrong creditnails' });
+  if (!user 
+    || (
+      (user.authMethod === "password" || user.authMethod === "both") 
+        && user.password !== null && !(await compare(body.password, user.password))))
+      throw createError({ statusCode: 422, statusMessage: 'Wrong credentials' });
   else {
-    const token = jwt.sign({ 
+    const token = jwt.sign({
 				id: user.id
 			}, AUTH_JWT_SECRET, { algorithm: AUTH_JWT_ALG, expiresIn: AUTH_JWT_LIFETIME }
     );

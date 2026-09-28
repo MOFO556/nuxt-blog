@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PostImageMeta } from '~/types/posts';
+  import type { PostImageMeta } from '~/types/posts';
 
   const { params } = useRoute();
   const id = computed(() => Number(params.id as string));

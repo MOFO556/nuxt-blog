@@ -10,13 +10,14 @@ export default defineTask({
   async run() {
     try {
       const usersArr: InsertUser[] = [
-        { login: "admin", password: await hash("password", 12)}
+        { login: "admin", password: await hash("password", 12), authMethod: "password"}
       ];
       const postsArr: InsertPost[] = [];
 
       for (let i = 0; i < 50; i++) {
         usersArr.push({
           login: faker.person.fullName(),
+          authMethod: "password",
           password: await hash("password", 12) //faker.internet.password({ length: 10 })
         });
         for (let j = 0; j < 2; j++) {

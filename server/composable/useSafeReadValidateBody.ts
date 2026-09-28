@@ -2,10 +2,10 @@ import { H3Event } from "h3";
 import * as z from "zod";
 
 export const useSafeReadValidateBody = 
-async<T extends Record<string, unknown>>(
+async<T extends z.ZodType>(
     event: H3Event<EventHandlerRequest>, 
-    schema: z.ZodObject
-  ): Promise<T> => {
+    schema: T
+  ): Promise<z.output<T>> => {
   const result = schema.safeParse(await readBody<T>(event as any));
   if (!result.success) {
     throw createError({
@@ -16,7 +16,7 @@ async<T extends Record<string, unknown>>(
           return [i.path.join('.'), i.message ]
         })
     })
-  }
-  const input = result.data as T
-  return input;
+  };
+  
+  return result.data;
 }

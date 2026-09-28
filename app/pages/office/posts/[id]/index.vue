@@ -1,6 +1,5 @@
 <script setup lang="ts">
   import type { Post } from '~/types/posts';
-
   const { post } = defineProps<{ post: Post }>();
 </script>
 

@@ -2,7 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
 import { postAttachments, posts } from '~~/server/database/schema';
-import { postPatch, postPatchSchema } from '~~/server/database/posts.validators';
+import { postPatchSchema } from '~~/server/database/posts.validators';
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() });
 
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const userId = event.context.user.id;
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse);
-  const patch = await useSafeReadValidateBody<postPatch>(event, postPatchSchema);
+  const patch = await useSafeReadValidateBody(event, postPatchSchema);
   const { images }: { images?: { postCover: boolean, id: number }[] } = await readBody(event);
 
   if (Object.keys(patch).length === 0)
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
     if (post.userId !== userId)
-      throw createError({ statusCode: 401, statusMessage: "Not allowed! Foreigner post" });
+      throw createError({ statusCode: 403, statusMessage: "Not allowed! Foreigner post" });
 
     return tx.update(posts)
       .set({...patch, updatedAt: sql`CURRENT_TIMESTAMP`})

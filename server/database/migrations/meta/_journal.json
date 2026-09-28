@@ -8,6 +8,20 @@
       "when": 1790239393995,
       "tag": "0000_dizzy_yellow_claw",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790525725402,
+      "tag": "0001_calm_tattoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790595113350,
+      "tag": "0002_shallow_spot",
+      "breakpoints": true
     }
   ]
 }

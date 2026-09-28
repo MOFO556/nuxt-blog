@@ -20,12 +20,10 @@
         :src="item.path.startsWith('/') ? item.path : `/${item.path}`"
         sizes="100vw sm:50vw md:400px"
         loading="lazy" />
-      <client-only>
-        <images-description v-if="item?.description"
-          class="w-full mt-2"
-          v-model="item.description"
-          :canEdit="false" />        
-      </client-only>
+      <images-description v-if="item?.description"
+        class="w-full mt-2"
+        v-model="item.description"
+        :canEdit="false" />        
     </div>
   </UCarousel>
 </template>

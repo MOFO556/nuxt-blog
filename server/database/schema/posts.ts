@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { users } from "./users";
+import { users } from "./auth/users";
 
 export const posts = sqliteTable("Post", {
   id: integer("id").primaryKey({ autoIncrement: true }).unique(),

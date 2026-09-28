@@ -28,9 +28,9 @@ export default eventHandler(async (event) => {
     if (!entry) 
       throw createError({ statusCode: 422, statusMessage: 'File count mismatch' });
     if (entry.data.length > 10 * 1024 * 1024)
-      throw createError({ statusCode: 422, statusMessage: 'File too large' });
+      throw createError({ statusCode: 413, statusMessage: 'File too large' });
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(entry.type ?? ''))
-      throw createError({ statusCode: 422, statusMessage: 'Unsupported type' });
+      throw createError({ statusCode: 415, statusMessage: 'Unsupported file type' });
     if (!entry.filename)
       throw createError({ statusCode: 422, statusMessage: 'Invalid file' });
 
@@ -64,7 +64,7 @@ export default eventHandler(async (event) => {
       if (!currPost)
         throw createError({ status: 404, statusMessage: "No post to load attachments!" });
       if (currPost.userId !== userId)
-        throw createError({ status: 401, statusMessage: "Not allowed! Foreigner post to load attachments" });
+        throw createError({ status: 403, statusMessage: "Not allowed! Foreigner post to load attachments" });
 
       currentImages = tx.select({ id: images.id, path: images.path, name: images.name, description: images.description })
         .from(postAttachments)
@@ -80,7 +80,7 @@ export default eventHandler(async (event) => {
       if (!currComment)
         throw createError({ status: 404, statusMessage: "No comment to load attachments!" });
       if (currComment.userId !== userId)
-        throw createError({ status: 401, statusMessage: "Not allowed! Foreigner comment to load attachments" });
+        throw createError({ status: 403, statusMessage: "Not allowed! Foreigner comment to load attachments" });
 
       currentImages = tx.select({ id: images.id, path: images.path, name: images.name, description: images.description })
         .from(commentAttachments)

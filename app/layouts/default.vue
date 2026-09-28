@@ -9,37 +9,40 @@ const navItems = computed(() => {
 		return (!loggedIn && i.filterKeys.includes("guest")) && i.filterKeys.includes(filterParam)
 	})
 });
+  const toaster = { position: 'top-right' as const }
 </script>
 
 <template>
-	<UApp>
-		<UHeader to="/">
+	<UApp :toaster="toaster">
+		<UHeader to="/"
+      :ui="{
+        container: 'max-w-full'
+      }">
     <template #title>
       <img class="h-6 w-auto" src="/icon.png"></img>
 			Blog
     </template>
 
-		<ClientOnly>			
-			<UNavigationMenu :items="navItems('inline')" />
-		</ClientOnly>
+    <UNavigationMenu :items="navItems('inline')" />
 
     <template #right>
       <UColorModeButton />
-
-        <UPopover
-          :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
-          :ui="{ content: 'w-56 p-2' }">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-menu"
-            aria-label="Menu"/>
-          <template #content>
-            <UNavigationMenu
-              :items="navItems('popover')"
-              orientation="vertical"/>
-          </template>
-        </UPopover>
+      <UButton variant="outline" color="neutral" :to="{ name: 'auth-login' }">Sign In</UButton>
+      <UButton variant="outline" :to="{ name: 'auth-register' }">Sign Up</UButton>
+      <!-- <UPopover
+        :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
+        :ui="{ content: 'w-56 p-2' }">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-menu"
+          aria-label="Menu"/>
+        <template #content>
+          <UNavigationMenu
+            :items="navItems('popover')"
+            orientation="vertical"/>
+        </template>
+      </UPopover> -->
     </template>
     <template #body>
       <UNavigationMenu :items="navItems('mobile')" orientation="vertical" class="-mx-2.5" />

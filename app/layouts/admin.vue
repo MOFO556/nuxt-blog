@@ -1,28 +1,30 @@
 <script setup lang="ts">
-import type { FilteredNavigationMenuItem, MenuFilters } from '~/types/core';
+  import type { FilteredNavigationMenuItem, MenuFilters } from '~/types/core';
 
-const { loggedIn, user } = useUserStore();
-const { items } = useNavigationItems();
-const navItems = computed(() => {
-	return (filterParam: MenuFilters) => 
-		items.value.filter((i: FilteredNavigationMenuItem) => {
-		return (loggedIn && i.filterKeys.includes("auth") 
-			|| !loggedIn && i.filterKeys.includes("guest")) && i.filterKeys.includes(filterParam)
-	})
-});
+  const { loggedIn } = useUserStore();
+  const { items } = useNavigationItems();
+  const navItems = computed(() => {
+    return (filterParam: MenuFilters) => 
+      items.value.filter((i: FilteredNavigationMenuItem) => {
+      return (loggedIn && i.filterKeys.includes("auth") 
+        || !loggedIn && i.filterKeys.includes("guest")) && i.filterKeys.includes(filterParam)
+    })
+  });
+  const toaster = { position: 'top-right' as const }
 </script>
 
 <template>
-	<UApp>
-		<UHeader to="/">
+	<UApp :toaster="toaster">
+		<UHeader to="/"
+      :ui="{
+        container: 'max-w-full'
+      }">
     <template #title>
       <img class="h-6 w-auto" src="/icon.png"></img>
 			Blog
     </template>
 
-		<ClientOnly>			
-			<UNavigationMenu :items="navItems('inline')" />
-		</ClientOnly>
+    <UNavigationMenu :items="navItems('inline')" />
 
     <template #right>
       <UColorModeButton />
