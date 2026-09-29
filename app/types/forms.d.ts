@@ -16,7 +16,7 @@ type UploadMethodResult =
   | UploadMethodResultItem[];
 
 export type UploadMethod = (
-  key: number,
+  key: number | null,
   payload: UploadPayload
 ) => Promise<UploadMethodResult>;
 

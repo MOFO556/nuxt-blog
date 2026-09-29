@@ -5,6 +5,7 @@ import type {
   Method, 
   ObjectParamsMethod,
   UploadMethod, 
+  UploadMethodResult, 
   UploadMethodResultItem, 
   UploadMethodResultMap, 
   UploadMethodWithoutKey, 
@@ -149,52 +150,57 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
         const key = typeof requestData[keyField as string] === "number"  
           ? requestData[keyField as string] as number
           : null;
+        
+        const postUploadProcessing = (resp: UploadMethodResult, itemKey: string) => {
+          if (Array.isArray(requestData[itemKey]) && Array.isArray(resp)) {
+            const fileMetaRes:(UploadMethodResultItem & ItemUploadMeta & { originalName?: string })[] = [];
+            
+            requestData[itemKey] = requestData[itemKey].map((d: File & { originalName?: string }) => {
+              const fileMeta = resp.find(f => f.name === (d?.originalName || d.name));
+              if (fileMeta)
+                fileMetaRes.push({...d, ...fileMeta})
+              if (fileMeta)
+                return { existingPath: fileMeta.path, originalName: fileMeta.name, fileId: fileMeta.id };
+              else 
+                return d;
+            });
+            return { [itemKey]: fileMetaRes } 
+          } else if (!Array.isArray(resp)){
+            return { [itemKey]: { ...requestData[itemKey], existingPath: resp.path, originalName: resp.name, fileId: resp.id } }
+          }
+        };
+
         uploadedFiles = (await Promise.all(
           Object.entries(uploadMethod)
           .map(async ([itemKey, uploadMethod]) => {
             if (requestData[itemKey]?.length || requestData[itemKey] instanceof File)
-              if (keyField && key)
+              if (keyField)
                 return (uploadMethod as UploadMethod)(key, requestData[itemKey])
+                  .then(resp => {
+                    return postUploadProcessing(resp, itemKey);
+                  })
               else
                 return (uploadMethod as UploadMethodWithoutKey)(requestData[itemKey])
-              .then(resp => {
-                if (Array.isArray(requestData[itemKey]) && Array.isArray(resp)) {
-                  const fileMetaRes:(UploadMethodResultItem & ItemUploadMeta & { originalName?: string })[] = [];
-                  
-                  requestData[itemKey] = requestData[itemKey].map((d: File & { originalName?: string }) => {
-                    const fileMeta = resp.find(f => f.name === (d?.originalName || d.name));
-                    if (fileMeta)
-                      fileMetaRes.push({...d, ...fileMeta})
-                    if (fileMeta)
-                      return { existingPath: fileMeta.path, originalName: fileMeta.name, fileId: fileMeta.id };
-                    else 
-                      return d;
-                  });
-                  return { [itemKey]: fileMetaRes } 
-                } else if (!Array.isArray(resp)){
-                  return { [itemKey]: { ...requestData[itemKey], existingPath: resp.path, originalName: resp.name, fileId: resp.id } }
-                }
-              })
-              .catch(err => {
-                const validationErrors = err.data.data;
-                processing.value = false
-                if (err.statusCode === 422 && Array.isArray(validationErrors)) {
-                  handleValidationErrors(validationErrors)
-                }
-                return {};
-              });
+                .then(resp => {
+                  return postUploadProcessing(resp, itemKey);
+                })
           })
           .filter(r => r !== undefined)
-        )).reduce((prev, acc) => {
+          ).catch(err => {
+            const validationErrors = err?.data?.data;
+            processing.value = false
+            if (err?.statusCode === 422 && Array.isArray(validationErrors)) {
+              handleValidationErrors(validationErrors)
+            }
+            return [];
+          })
+        ).reduce((prev, acc) => {
             return {...prev, ...acc}
           }, {}) || {};
         if (onUploadSucseed !== undefined)
           onUploadSucseed(uploadedFiles as UploadMethodResultMap<TFormData>);
       };
-
-      const pld = {...requestData, ...uploadedFiles};
-      const vals = Object.values(pld)
-
+      
       const result = await (method as ObjectParamsMethod<TFormData, TApiRes>)({...requestData, ...uploadedFiles});
 
       processing.value = false;
