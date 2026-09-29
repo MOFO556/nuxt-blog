@@ -1,6 +1,12 @@
 <script setup lang="ts">
   import { z } from 'zod';
-  import type { User, UserResp } from '~/types/user';
+  
+  useHead({
+    title: 'Login',
+    meta: [
+      { name: 'description', content: 'Login to the app' },
+    ]
+  })
 
   const schema = z.object({
     login: z.string().min(1, 'Login is required'),

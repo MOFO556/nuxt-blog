@@ -1,6 +1,13 @@
 <script setup lang="ts">
   import { z } from 'zod';
-  import type { User, UserFormData, UserResp } from '~/types/user';
+  import type { UserFormData, UserResp } from '~/types/user';
+  
+  useHead({
+    title: 'Register',
+    meta: [
+      { name: 'description', content: 'Register in the app' },
+    ]
+  })
 
   definePageMeta({
     guest: true

@@ -9,6 +9,13 @@
       content?: string,
       imageSrcs?: PostImageMeta[]
     }>();
+  
+  useHead({
+    title: `Post${title ? title + ' ' : '' } editing`,
+    meta: [
+      { name: 'description', content: `Edit your blog post${title ? title + ' ' : '' }` },
+    ]
+  });
 </script>
 
 <template>

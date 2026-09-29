@@ -90,7 +90,8 @@
             :avatar="{
               src:  user?.avatar ? user?.avatar?.startsWith('/') ? `${user.avatar}` : `/${user.avatar}` : '/images/default-avatar.png',
               loading: 'lazy',
-              as: { img: 'img' }
+              as: { img: 'img' },
+              alt: `${user?.login ? user.login : 'User'} icon`
             }"
             :rows="1"
             :autoresize="true"

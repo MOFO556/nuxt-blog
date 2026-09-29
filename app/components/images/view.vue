@@ -17,10 +17,12 @@ const throttleFunc = throttle(descriptionChanged, 75);
   <UContainer>
     <img v-if="noProvider"
       class="p-4"
-      :src="imgSrc"/>
+      :src="imgSrc"
+      :alt="description ? description : 'image preview'"/>
     <NuxtImg v-else
       class="p-4"
-      :src="imgSrc"></NuxtImg>
+      :src="imgSrc"
+      :alt="description ? description : 'image preview'"></NuxtImg>
     <images-description :canEdit="canEditDescription"
       v-model="descriptionModel" 
       @update:model-value="throttleFunc()"

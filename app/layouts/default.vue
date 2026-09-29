@@ -19,7 +19,7 @@ const navItems = computed(() => {
         container: 'max-w-full'
       }">
     <template #title>
-      <img class="h-6 w-auto" src="/icon.png"></img>
+      <img class="h-6 w-auto" src="/icon.png" alt="blog icon"></img>
 			Blog
     </template>
 

@@ -10,6 +10,13 @@
     () => `post${id.value}`,
     () => $api.posts.post(id.value)
   );
+
+  useHead({
+    title: `Post ${data.value ? ' - ' + data.value?.title : ''}`,
+    meta: [
+      { name: 'description', content: `Blog post${data.value ? ' about ' + data.value?.title : ''}`  },
+    ]
+  });
 </script>
 
 <template>

@@ -1,5 +1,13 @@
 <script setup lang="ts">
   import type { Post } from '~/types/posts';
+  
+  useHead({
+    title: 'Public blog',
+    meta: [
+      { name: 'description', content: 'Public blog posts' },
+    ]
+  });
+
   const { $api } = useNuxtApp();
 
   const { data: posts, error } = await useAsyncData<Post[]>

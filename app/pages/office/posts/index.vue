@@ -1,11 +1,17 @@
 <script setup lang="ts">
   import type { Post } from '~/types/posts';
+  useHead({
+    title: `User's blog`,
+    meta: [
+      { name: 'description', content: `User's blog posts` },
+    ]
+  });
+
   const { $api } = useNuxtApp();
 
   const { data: posts, error } = await useAsyncData<Post[]>
     ("office-posts", $api.posts.my)
       .then(async res => {
-        const dataWithImages = res.data.value
         return { data: res.data, error: res?.error }
       })
       .catch(e => {

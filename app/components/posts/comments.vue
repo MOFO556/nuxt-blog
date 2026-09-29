@@ -78,7 +78,7 @@
     </ClientOnly>
     <template v-if="!!comments?.length">
       <h1 class="mt-5">Comments</h1>
-      <UCard v-for="comment in comments" :key="comment.id"
+      <LazyUCard v-for="comment in comments" :key="comment.id"
         class="m-2"
         variant="soft"
         :ui="{ header: 'p-2 sm:px-2' }">
@@ -86,7 +86,11 @@
           <UContainer class="flex gap-2 px-0 sm:px-0 lg:px-0 items-center justify-between text-xs">
             <ClientOnly>
               <UContainer class="flex gap-2 items-center justify-start">              
-                <UAvatar :src="comment.user.avatar || '/images/default-avatar.png'" provider="none" size="xs"></UAvatar>
+                <UAvatar 
+                  :src="comment.user.avatar || '/images/default-avatar.png'"
+                  :alt="`${comment.user?.login ? comment.user.login : 'User'} icon`"
+                  provider="none" 
+                  size="xs"></UAvatar>
                 <pre>{{ comment.user.login }}</pre>
               </UContainer>              
             </ClientOnly>
@@ -100,17 +104,18 @@
 
         <template #footer v-if="comment.attachments?.length">
           <LazyUCarousel class="mt-2 w-full mx-auto"
-            v-slot="{ item }"
+            v-slot="{ item, index }"
             :items="comment.attachments"
             :ui="{ item: 'basis-1/3', container: 'justify-center' }">
-            <NuxtImg class="expandable"
+            <LazyNuxtImg class="expandable"
               :src="item.path?.startsWith('/') ? `${item.path}` : `/${item.path}`" 
+              :alt="item.description ? item.description : `comment image ${comment.id}-${index}`" 
               sizes="200px sm:50px md:150px"
               loading="lazy"
-              @click="onModalToOpen(item, comment)"></NuxtImg>
+              @click="onModalToOpen(item, comment)"></LazyNuxtImg>
           </LazyUCarousel>
         </template>
-      </UCard>
+      </LazyUCard>
     </template>
     <UModal v-model:open="imagePreviewModal.open"
         :ui="{
@@ -121,7 +126,7 @@
         @after:leave="onModalClose()">
       <template #body>
         <lazy-images-view :canEditDescription="imagePreviewModal.comment?.userId === user?.id"
-          :imgSrc="imagePreviewModal.picture" 
+          :imgSrc="imagePreviewModal.picture"
           :description="imagePreviewModal.description"
           @descriptionEditStopped="debounceFunc($event)"></lazy-images-view>
       </template>

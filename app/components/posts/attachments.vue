@@ -8,9 +8,9 @@
 </script>
 
 <template>
-  <UCarousel v-if="attachments?.length"
+  <LazyUCarousel v-if="attachments?.length"
     class="mt-2 w-full mx-auto"
-    v-slot="{ item }"
+    v-slot="{ item, index }"
     loop
     arrows
     :items="attachments"
@@ -18,12 +18,13 @@
     <div class="flex flex-col gap-0.5">
       <NuxtImg class="rounded-lg"
         :src="item.path.startsWith('/') ? item.path : `/${item.path}`"
+        :alt="item.description ? item.description : `post image ${index}`"
         sizes="100vw sm:50vw md:400px"
         loading="lazy" />
-      <images-description v-if="item?.description"
+      <lazy-images-description v-if="item?.description"
         class="w-full mt-2"
         v-model="item.description"
         :canEdit="false" />        
     </div>
-  </UCarousel>
+  </LazyUCarousel>
 </template>
