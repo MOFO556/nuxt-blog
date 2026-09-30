@@ -1,5 +1,13 @@
-import { checkAuth } from "~~/server/utils/auth";
-
 export default defineEventHandler(async event => {
-  return await checkAuth(event);
+  const { user } = await requireAuth(event).catch(() => {
+    return { user: null};
+  });
+  
+  if (!user)
+    return {
+      auth: false
+    }
+  else {
+    return { auth: true, user: user};
+  }
 })

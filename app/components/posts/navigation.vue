@@ -1,6 +1,7 @@
 <script setup lang="ts">
   const props = defineProps<{
     postId: number;
+    backPath: string;
     basePath: string;
     showEdit?: boolean;
   }>();
@@ -12,7 +13,7 @@
 
 <template>
   <nav class="mt-4 flex items-center justify-center gap-2">
-    <ULink class="flex gap-0.5 items-center w-fit" :to="`${basePath}/`">
+    <ULink class="flex gap-0.5 items-center w-fit" :to="`${backPath}`">
       <UIcon name="i-lucide-arrow-left-from-line" size="15" />
       Back to list
     </ULink>

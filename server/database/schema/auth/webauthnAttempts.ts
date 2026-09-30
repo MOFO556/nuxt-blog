@@ -5,7 +5,8 @@ export const webauthnAttempts = sqliteTable('WebauthnAttempt', {
   id: text('id').primaryKey(),
   challenge: text('challenge').notNull(),
   userId: integer('user_id'),
-  type: text('type', { enum: ['register', 'authenticate'] }).notNull(),
+  type: text('type', { enum: ['register', 'authenticate', 'add_credential'] }).notNull(),
   expiresAt: integer('expires_at').notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  pending: text('pending'),
 })

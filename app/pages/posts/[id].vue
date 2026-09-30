@@ -23,7 +23,7 @@
   <UPageBody>
     <h1 v-if="!data">Error</h1>
     <UContainer v-else>
-      <posts-detail base-path="/posts"
+      <posts-detail base-path="/posts" back-path="/posts"
         :post="data"
         :show-authors="true"
         :showEdit="user?.id === data.userId"/>

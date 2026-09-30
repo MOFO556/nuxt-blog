@@ -11,10 +11,10 @@ export const useNavigationItems = () => {
     active: route.path.startsWith('/posts'),
     filterKeys: ['guest', 'auth', 'mobile', 'inline']
   }, {
-    label: 'Private blog',
-    to: '/office/posts',
+    label: 'Profile',
+    to: '/office/profile',
     icon: 'i-lucide-book-user',
-    active: route.path.startsWith('/office/posts'),
+    active: route.path.startsWith('/office/'),
     filterKeys: ['auth', 'mobile', 'inline']
   }, {
     label: 'Login',

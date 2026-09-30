@@ -6,7 +6,7 @@
 <template>
   <UPageBody>
     <UContainer>
-      <posts-detail  base-path="/office/posts"
+      <posts-detail  base-path="/office/posts" back-path="/office/profile?area=posts"
         :post="post"
         :showEdit="true"/>
     </UContainer>

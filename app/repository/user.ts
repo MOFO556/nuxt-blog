@@ -1,6 +1,6 @@
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import type { ItemUploadMeta } from '~/types/core';
-import type { UserResp } from "~/types/user";
+import type { UserResp, ProfileFormData, SessionsInfo } from "~/types/user";
 
 export function createUserRepository(appFetch: typeof $fetch) {
   const userStore = useUserStore();
@@ -32,13 +32,13 @@ export function createUserRepository(appFetch: typeof $fetch) {
         })
     },
     async registerPassKey(payload: { login: string, password?: string, avatar?: ItemUploadMeta }): Promise<UserResp> {
-      const {attestation, attemptId, pending} = await appFetch<any>('/api/auth/webauthn/register', {
+      const { attestation, attemptId } = await appFetch<any>('/api/auth/webauthn/register', {
         method: 'POST',
         body: { ...payload, usePasskey: true },
       }).then(async options => {
         try {
-          const { attemptId, pending, ...publicKey } = options;
-          return {attestation: await startRegistration({ optionsJSON: publicKey }), attemptId, pending};
+          const { attemptId, ...publicKey } = options;
+          return { attestation: await startRegistration({ optionsJSON: publicKey }), attemptId };
         }
         catch (err) {
           throw createError({ status: 400, statusText: "Failed to create a passkey", data: (<any>err)?.message || {} });
@@ -49,7 +49,7 @@ export function createUserRepository(appFetch: typeof $fetch) {
 
       return appFetch<UserResp>('/api/auth/webauthn/register/verify', {
         method: 'POST',
-        body: { attemptId, pending, response: attestation },
+        body: { attemptId, response: attestation },
       }).then(res => {
           const userCookie = useCookie<(string| null)>
             ('token', { default: () => null });
@@ -84,6 +84,32 @@ export function createUserRepository(appFetch: typeof $fetch) {
           userStore.setUser(res.user);
           return res;
         })
+    },
+    async addPasskey() {
+      const { attestation, attemptId } = await appFetch<any>('/api/auth/webauthn/credentials', { method: 'POST' })
+        .then(async options => {
+          const { attemptId, ...publicKey } = options;
+          return { attestation: await startRegistration({ optionsJSON: publicKey }), attemptId };
+        });
+
+      return appFetch('/api/auth/webauthn/credentials/verify', {
+        method: 'POST',
+        body: { attemptId, response: attestation },
+      });
+    },
+    async getConnections() {
+      return appFetch('/api/auth/webauthn/credentials/');
+    },
+    async getSessions() {
+      return appFetch<SessionsInfo[]>('/api/auth/sessions/');
+    },
+    async revokeSession(sessionId: string) {
+      return appFetch<SessionsInfo[]>(`/api/auth/sessions/${sessionId}`, {
+        method: 'DELETE'
+      });
+    },
+    async updateProfile(payload: ProfileFormData) {
+      return appFetch('/api/auth/profile', { method: 'PATCH', body: payload });
     },
     async check(): Promise<UserResp & { auth?: boolean}> {
       return appFetch<UserResp & { auth?: boolean}>('/auth/check')

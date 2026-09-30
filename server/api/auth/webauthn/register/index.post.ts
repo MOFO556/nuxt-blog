@@ -1,9 +1,10 @@
-import { randomUUID } from 'node:crypto'
-import { generateRegistrationOptions } from '@simplewebauthn/server'
-import { eq } from 'drizzle-orm'
-import { users, webauthnAttempts } from '~~/server/database/schema'
-import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody'
-import { userInsertSchema } from '~~/server/database/users.validators'
+import { randomUUID } from 'node:crypto';
+import { generateRegistrationOptions } from '@simplewebauthn/server';
+import { hash } from 'bcrypt';
+import { eq } from 'drizzle-orm';
+import { users, webauthnAttempts } from '~~/server/database/schema';
+import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
+import { userInsertSchema } from '~~/server/database/users.validators';
 
 export default defineEventHandler(async (event) => {
   const { login, password, avatar, authMethod} = await useSafeReadValidateBody(event, userInsertSchema);
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
   });
 
   if (existing)
-    throw createError({ statusCode: 409, statusMessage: 'Login already taken' });
+    throw createError({ statusCode: 422, statusMessage: 'Invalid data' });
 
   const cfg = useRuntimeConfig(event).webauthn
   const options = await generateRegistrationOptions({
@@ -34,13 +35,15 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  const hashedPassword = password ? await hash(password, 12) : null;
   const attemptId = randomUUID();
   await useDb().insert(webauthnAttempts).values({
     id: attemptId,
     challenge: options.challenge,
     type: 'register',
     expiresAt: Date.now() + 5 * 60 * 1000,
+    pending: JSON.stringify({ login, password: hashedPassword, avatar, authMethod })
   });
 
-  return { ...options, attemptId, pending: { login, password, avatar, authMethod } };
+  return { ...options, attemptId };
 })

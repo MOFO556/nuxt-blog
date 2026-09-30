@@ -60,7 +60,8 @@ export default defineNuxtConfig({
   nitro: {
     experimental: { tasks: true, websocket: true },
     scheduledTasks: {
-      "*/10 * * * *": ["posts:enrich", "cleanup:orphan-images"],
+      "*/10 * * * *": ["posts:enrich", "cleanup:orphan-images", "cleanup:webauthn-attempts"],
+      "0 4 * * *": ["cleanup:sessions"],
     }
   },
   modules: [
@@ -150,7 +151,10 @@ export default defineNuxtConfig({
     },
     "/auth/**": {
       ssr: false
-    }
+    },
+    "/**": {
+      headers: { "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload" },
+    },
   },
   ui: {
     experimental: {

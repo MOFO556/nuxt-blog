@@ -34,7 +34,7 @@ export default defineEventHandler(async event => {
             },
           },
         },
-      },      
+      },
       orderBy: desc(comments.createdAt)
     });
 

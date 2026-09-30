@@ -1,9 +1,8 @@
 import { compare } from "bcrypt";
 import { eq } from "drizzle-orm";
-import jwt from "jsonwebtoken";
-import { AUTH_JWT_SECRET, AUTH_JWT_ALG, AUTH_JWT_LIFETIME } from "~~/server/config/auth";
-import { users } from "~~/server/database/schema";
+import { images, users } from "~~/server/database/schema";
 import { userSchema } from "~~/server/database/users.validators";
+import { createSession } from "~~/server/utils/session";
 
 export default defineEventHandler(async event => {  
   const body = await readBody(event);
@@ -17,9 +16,15 @@ export default defineEventHandler(async event => {
     throw createError({ statusCode: 422, statusMessage: 'Invalid data', data: errorsObj  });
   }
 
-  const user = await useDb().query.users.findFirst({
-      where: eq(users.login, body.login),
-    });
+  let avatar: string | undefined;
+  const user = await useDb().transaction(tx => {    
+    const user = tx.select().from(users).where(eq(users.login, body.login)).get();
+    
+    if (user?.avatar)
+      avatar = tx.select().from(images).where(eq(images.id, user.avatar)).get()?.path;
+    
+    return user;
+  })
 
   if (!user 
     || (
@@ -27,10 +32,14 @@ export default defineEventHandler(async event => {
         && user.password !== null && !(await compare(body.password, user.password))))
       throw createError({ statusCode: 422, statusMessage: 'Wrong credentials' });
   else {
-    const token = jwt.sign({
-				id: user.id
-			}, AUTH_JWT_SECRET, { algorithm: AUTH_JWT_ALG, expiresIn: AUTH_JWT_LIFETIME }
-    );
-    return { user: { id: user.id, login: user.login }, token};
+    const sessionId = await createSession(event, {
+        userId: user.id,
+        loginMethod: 'password',
+        passwordSnapshot: user.password,
+      });
+    broadcast(`user:${user.id}`, { type: 'sessions:added' });
+    
+    const token = signToken(user.id, sessionId);
+    return { user: { id: user.id, login: user.login, avatar }, token};
   }
 })

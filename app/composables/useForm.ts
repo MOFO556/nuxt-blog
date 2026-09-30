@@ -219,8 +219,7 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
         toast.add({
           title: "Error",
           color: "error",
-          description: `Request processing failed. ${err?.message || err?.data || ''}`,
-          
+          description: `Request processing failed. ${err?.message || err?.data || ''}`,          
         })
       }
     }

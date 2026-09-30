@@ -1,6 +1,7 @@
 import { verifyAuthenticationResponse } from '@simplewebauthn/server'
-import { and, eq, gt } from 'drizzle-orm';
-import { users, credentials, webauthnAttempts } from '~~/server/database/schema'
+import { and, eq, gt, sql } from 'drizzle-orm';
+import { users, credentials, webauthnAttempts, images } from '~~/server/database/schema'
+import { createSession } from '~~/server/utils/session';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ attemptId: string; response: unknown }>(event);
@@ -41,22 +42,36 @@ export default defineEventHandler(async (event) => {
   if (!verification.verified || !verification.authenticationInfo)
     throw createError({ statusCode: 422, statusMessage: 'Authentication failed' });
 
+  let avatar: string | undefined;
   const user = await useDb().transaction(tx => {
   const { newCounter } = verification.authenticationInfo;
     tx.update(credentials)
-      .set({ counter: newCounter })
+      .set({ counter: newCounter, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(credentials.id, credentialRow.id));
 
     tx.delete(webauthnAttempts).where(eq(webauthnAttempts.id, body.attemptId));
 
-    return tx.select().from(users).where(eq(users.id, <number>attempt.userId)).get();
+    const user = tx.select().from(users).where(eq(users.id, <number>attempt.userId)).get();
+
+    if (user?.avatar)
+      avatar = tx.select().from(images).where(eq(images.id, user.avatar)).get()?.path;
+    
+    return user;
   })
 
   if (!user)
     throw createError({ statusCode: 422, statusMessage: 'Wrong credentials' });
 
+  const sessionId = await createSession(event, {
+    userId: user.id,
+    loginMethod: 'passkey',
+    credentialId: credentialRow.id,
+  });
+
+  broadcast(`user:${user.id}`, { type: 'sessions:added' });
+
   return {
-    user: { id: user.id, login: user.login },
-    token: signToken(user.id),
+    user: { id: user.id, login: user.login, avatar },
+    token: signToken(user.id, sessionId),
   }
 })

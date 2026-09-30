@@ -13,9 +13,14 @@ export const useUserStore = defineStore('UserStore', {
   },
   actions: {
     logout() {
+      useNuxtApp().$api.auth.revokeSession("current").then(() => {
+        this.postRevokeCleanUp()   
+      });
+    },
+    postRevokeCleanUp() {      
       const authCookie = useCookie('token');
       authCookie.value = null;
-      location.reload();
+      location.reload();        
     },
     setUser(data: User) {
       if (data)

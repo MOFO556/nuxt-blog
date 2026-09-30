@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import { credentials } from './auth/credentials';
 import { users } from './auth/users';
+import { sessions } from './auth/sessions';
 import { posts } from './posts';
 import { images } from './images';
 import { comments } from './comments';
@@ -11,17 +12,19 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   posts: many(posts),
   comments: many(comments),
   credentials: many(credentials),
+  sessions: many(sessions),
   avatar: one(images, {
     fields: [users.avatar],
     references: [images.id]
   })
 }));
 
-export const credentialsRelations = relations(credentials, ({ one }) => ({
+export const credentialsRelations = relations(credentials, ({ one, many }) => ({
   user: one(users, {
     fields: [credentials.userId],
     references: [users.id],
   }),
+  sessions: many(sessions),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -75,5 +78,16 @@ export const postAttachmentsRelations = relations(postAttachments, ({ one }) => 
   image: one(images, {
     fields: [postAttachments.imageId],
     references: [images.id],
+  }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id]
+  }),
+  credentials: one(credentials, {
+    fields: [sessions.credentialId],
+    references: [credentials.id]
   }),
 }));

@@ -4,6 +4,7 @@
   const props = defineProps<{
     post: Post;
     basePath: string;
+    backPath: string;
     showAuthors?: boolean;
     showEdit?: boolean;
     navGap?: string;
@@ -24,5 +25,6 @@
   <posts-comments :post="post" />
   <posts-navigation :postId="post.id"
     :basePath="basePath"
+    :backPath="backPath"
     :showEdit="showEdit"/>
 </template>
