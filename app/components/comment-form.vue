@@ -35,8 +35,7 @@
     },
     "id",
     async (res) => {
-      form.value.text = '';
-      form.value.images = [];
+      form.reset();
       await refreshNuxtData(`comments-post${postId}`);
     },
     schema

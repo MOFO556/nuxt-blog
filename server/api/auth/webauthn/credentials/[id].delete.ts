@@ -20,14 +20,14 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 422, statusMessage: 'Cannot remove your only sign-in method' });
 
     tx.delete(credentials)
-      .where(and(eq(credentials.id, id), eq(credentials.userId, userId)));
+      .where(and(eq(credentials.id, id), eq(credentials.userId, userId))).run();
       
     tx.update(sessions)
     .set({ invalidated: true, invalidReason: "passkey removed" })
     .where(eq(sessions.credentialId, id))
     .run();
-  })
+  });
 
-  broadcast(`user:${userId}`, { type: 'sessions:removed' });
+  broadcast(`user:${userId}`, { type: 'credentials:removed' });
   return { ok: true };
 });

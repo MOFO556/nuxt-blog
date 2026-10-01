@@ -68,10 +68,10 @@ export function createUserRepository(appFetch: typeof $fetch) {
           return {assertion: await startAuthentication({ optionsJSON: publicKey }), attemptId};
         }
         catch (err) {
-          throw createError({ status: 422, statusText: "Failed to create a passkey", data: err });
+          throw createError({ status: 422, statusText: "Failed to validate a passkey", data: err });
         }
       }).catch(err => {
-          throw createError({ status: 422, statusText: "Failed to create a passkey", data: err });
+          throw err;
       });
 
       return appFetch<UserResp>('/api/auth/webauthn/login/verify', {
@@ -95,6 +95,11 @@ export function createUserRepository(appFetch: typeof $fetch) {
       return appFetch('/api/auth/webauthn/credentials/verify', {
         method: 'POST',
         body: { attemptId, response: attestation },
+      });
+    },
+    async removePasskey(id: string) {
+      return appFetch(`/api/auth/webauthn/credentials/${id}`, {
+        method: 'DELETE',
       });
     },
     async getConnections() {

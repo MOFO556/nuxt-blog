@@ -9,10 +9,11 @@ export default defineEventHandler(async event => {
   try {
     userSchema.parse(body);
   } catch (error: any) {
-    const errorsObj =  error.issues.reduce(
-      (errors: Record<string, string>, err: any) => 
-        { return { ...errors, ...{ [err.path[0]]: err.message } } }, 
-      {});
+      const errorsObj =  error.issues.reduce(
+        (errors: [string, string][], err: any) => {
+          errors.push([err.path[0], err.message]);
+          return errors;
+        }, []);
     throw createError({ statusCode: 422, statusMessage: 'Invalid data', data: errorsObj  });
   }
 
@@ -30,7 +31,10 @@ export default defineEventHandler(async event => {
     || (
       (user.authMethod === "password" || user.authMethod === "both") 
         && user.password !== null && !(await compare(body.password, user.password))))
-      throw createError({ statusCode: 422, statusMessage: 'Wrong credentials' });
+      throw createError({ statusCode: 422, statusMessage: 'Wrong credentials', data: [
+        ["login", "Wrong credentials"],
+        ["password", "Wrong credentials"]
+      ]});
   else {
     const sessionId = await createSession(event, {
         userId: user.id,

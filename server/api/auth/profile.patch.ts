@@ -15,11 +15,19 @@ export default defineEventHandler(async (event) => {
   }>(event);
 
   if (body.newPassword !== undefined && body.removePassword)
-    throw createError({ statusCode: 422, statusMessage: 'Conflicting password operations' });
+    throw createError({ statusCode: 422, statusMessage: 'Conflicting password operations', data: [["newPassword", "Cannot set new password"], ["removePassword", "Unable to delete password"]] });
 
   const user = await useDb().query.users.findFirst({ where: eq(users.id, userId) });
   if (!user) 
     throw createError({ statusCode: 401, statusMessage: 'Not authorized' });
+
+  if (body.removePassword && !user.password) 
+    throw createError({ statusCode: 422, statusMessage: 'Unable to delte password', data: [["removePassword", "Strange operation"]] });
+  
+  if (body.newPassword !== undefined && (!body.currentPassword && !!user.password)
+    || body.removePassword && (!body.currentPassword && !!user.password)
+  )
+    throw createError({ statusCode: 422, statusMessage: 'Unable to change password', data: [["currentPassword", "Enter current password!"]] });
 
   const passkeys = await useDb().query.credentials.findMany({
     where: eq(credentials.userId, userId),
@@ -51,18 +59,18 @@ export default defineEventHandler(async (event) => {
       password = newPassword;
     } catch (error: any) {
       const errorsObj =  error.issues.reduce(
-        (errors: Record<string, string>, err: any) => 
-          { return { ...errors, ...{ [err.path[0]]: err.message } } }, 
-        {});
+        (errors: [string, string][], err: any) => {
+          errors.push([err.path[0] === "password" ? "newPassword" : err.path[0], err.message]);
+          return errors;
+        }, 
+        []);
       throw createError({ statusCode: 422, statusMessage: 'Invalid data', data: errorsObj  });
     }
-    if (user.password) {
-      if (!body.currentPassword)
-        throw createError({ statusCode: 422, statusMessage: 'Current password required' });
-      const ok = await compare(body.currentPassword, user.password);
+    if (body.currentPassword) {
+      const ok = await compare(body.currentPassword, user.password || '');
       if (!ok) 
         throw createError({ statusCode: 422, statusMessage: 'Invalid data' });
-    } 
+    }
     if (password){
       updates.password = await hash(password, 12);}
   }

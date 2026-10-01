@@ -46,8 +46,7 @@ export default defineEventHandler(async (event) => {
   const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown';
   const userAgent = getRequestHeader(event, 'user-agent') || 'unknown';
   let city: string, country: string;
-
-  console.log(ip)
+  
   if (ip !== 'unknown') {
     try {
       const res = await useLookUpIp(ip);
@@ -83,7 +82,7 @@ export default defineEventHandler(async (event) => {
       userAgent,
     }).returning().get();
 
-    tx.delete(webauthnAttempts).where(eq(webauthnAttempts.id, body.attemptId));
+    tx.delete(webauthnAttempts).where(eq(webauthnAttempts.id, body.attemptId)).run();
 
     if (u.avatar)
       avatar = tx.select().from(images).where(eq(images.id, u.avatar)).get()?.path;

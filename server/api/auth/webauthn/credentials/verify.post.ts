@@ -1,6 +1,6 @@
 import { and, eq, gt } from 'drizzle-orm';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
-import { credentials, webauthnAttempts } from '~~/server/database/schema';
+import { credentials, users, webauthnAttempts } from '~~/server/database/schema';
 import { useLookUpIp } from '~~/server/composable/useLookUpIp';
 
 export default defineEventHandler(async (event) => {
@@ -61,7 +61,11 @@ export default defineEventHandler(async (event) => {
       userAgent,
     }).run();
 
-    tx.delete(webauthnAttempts).where(eq(webauthnAttempts.id, body.attemptId));
+    tx.update(users).set({ authMethod: "both" }).where(
+      and(eq(users.id, userId), eq(users.authMethod, "password"))
+    ).run();
+
+    tx.delete(webauthnAttempts).where(eq(webauthnAttempts.id, body.attemptId)).run();
   });
 
   broadcast(`user:${userId}`, { type: 'credentials:added' });

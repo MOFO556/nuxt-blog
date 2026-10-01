@@ -6,9 +6,10 @@ export const PROFILE_EDIT_KEY: InjectionKey<ProfileEditContext> =
   Symbol('profileEdit');
 
 export function useProfileEditForm() {
-  const { $api } = useNuxtApp()
-  const toast = useToast()
-  const userStore = useUserStore()
+  const { $api } = useNuxtApp();
+  const toast = useToast();
+  const userStore = useUserStore();
+  const isDefaultPicture = ref(!userStore.user?.avatar);
 
   const form = useForm<ProfileFormData, { ok: boolean }>(
     {
@@ -91,7 +92,7 @@ export function useProfileEditForm() {
     )
   }
 
-  const ctx = { form, previewUrl, hasNewAvatar, isDirty, submit };
+  const ctx = { form, previewUrl, hasNewAvatar, isDirty, submit, isDefaultPicture };
   provide(PROFILE_EDIT_KEY, ctx);
   return ctx;
 }

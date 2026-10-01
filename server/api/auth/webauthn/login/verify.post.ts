@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
       .set({ counter: newCounter, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(credentials.id, credentialRow.id));
 
-    tx.delete(webauthnAttempts).where(eq(webauthnAttempts.id, body.attemptId));
+    tx.delete(webauthnAttempts).where(eq(webauthnAttempts.id, body.attemptId)).run();
 
     const user = tx.select().from(users).where(eq(users.id, <number>attempt.userId)).get();
 

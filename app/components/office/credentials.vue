@@ -1,9 +1,12 @@
 <script setup lang="ts">
   import type { CredentialsInfo } from '~/types/user';
+import ConfirmDialog from '../confirm-dialog.vue';
 
   const { $api } = useNuxtApp();
   const { user } = useUserStore();
   const toast = useToast();
+  const overlay = useOverlay();
+  const confirm = overlay.create(ConfirmDialog);
 
   const { data: credentials, refresh: refreshCredentials } = await useAsyncData<CredentialsInfo[]>(
     'credentials-info',
@@ -14,13 +17,30 @@
   const passkeyAdd = () =>
     $api.auth.addPasskey()
       .then(() => refreshCredentials())
-      .catch(e =>
+      .catch(err =>
         toast.add({
           title: 'Error',
           color: 'error',
-          description: `Unable to add passkey! ${e?.message ?? ''}`,
+          description: `Unable to add passkey! ${err?.message ?? ''}`,
         }),
       );
+  const passkeyRemove = async (id: string) => {
+    const confirmInstance = confirm.open({
+      description: 'Do you want to remove passkey?'
+    });
+    const confirmResult = await confirmInstance.result;
+    if (confirmResult)
+      $api.auth.removePasskey(id)
+        .catch(err => {
+          toast.add({
+            title: 'Error',
+            color: 'error',
+            description: `Unable to delete passkey! ${err?.message ?? ''}`,
+          })
+        });
+    else
+      return;
+  }
       
   const { on } = useRealtime();
   const off = on(`user:${user!.id}`, (payload) => {
@@ -41,12 +61,15 @@
         class="w-full"
         :ui="{ header: 'p-2 sm:px-4', body: 'p-2 sm:p-4' }">
         <template #header>
-          <div class="flex items-center gap-1 w-full">
+          <div class="flex items-center gap-1 w-full pr-6 relative">
             <UIcon :name="isPasskey(connection) ? 'i-lucide-key' : 'i-lucide-lock-keyhole'" />
             <span class="w-full">
               {{ isPasskey(connection) ? 'Synced passkey' : 'Hardware key' }} —
               {{ connection.userAgent }}
             </span>
+            <UIcon class="absolute right-0 bg-error cursor-pointer" 
+              name="i-lucide-x"
+              @click.prevent="passkeyRemove(connection.id)"/>
           </div>
         </template>
 

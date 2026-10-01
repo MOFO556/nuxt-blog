@@ -35,7 +35,6 @@ export const userInsertSchema = userColumns.extend({
     }
   })
   .transform(({ login, password, usePasskey, avatar }): InsertUser => {
-    console.log(avatar)
     const hasPassword = !!password;
     const authMethod = hasPassword && usePasskey
       ? 'both'

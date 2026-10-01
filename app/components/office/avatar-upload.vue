@@ -1,6 +1,6 @@
 <script setup lang="ts">
   const { editable } = defineProps<{ editable?: boolean }>();
-  const { previewUrl, hasNewAvatar, form } = useProfileEdit();
+  const { previewUrl, hasNewAvatar, form, isDefaultPicture } = useProfileEdit();
   const fileInput = ref<HTMLInputElement | null>(null);
 
   function pick() {
@@ -17,9 +17,9 @@
   };
 
   const provider = computed(() =>
-    previewUrl.value?.startsWith('/') && !previewUrl.value.startsWith('//')
-      ? 'ipx'
-      : 'none',
+    isDefaultPicture
+      ? 'none'
+      : 'ipx',
   );
 </script>
 
@@ -39,6 +39,9 @@
       aria-label="Upload new avatar"
       @click="pick"/>
 
+    <UTooltip v-if="isDefaultPicture && !hasNewAvatar" class="absolute top-3 right-5 cursor-help" text="No avatar loaded">
+      <UBadge class="rounded-full" color="primary" variant="soft" icon="i-lucide-asterisk" size="lg"/>
+    </UTooltip>
     <UTooltip v-if="hasNewAvatar" class="absolute top-3 right-5 cursor-help" text="Avatar unsaved">
       <UBadge class="rounded-full" color="warning" variant="soft" icon="i-lucide-asterisk" size="lg"/>
     </UTooltip>
