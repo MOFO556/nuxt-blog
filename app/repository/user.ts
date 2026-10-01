@@ -118,12 +118,16 @@ export function createUserRepository(appFetch: typeof $fetch) {
     },
     async check(): Promise<UserResp & { auth?: boolean}> {
       return appFetch<UserResp & { auth?: boolean}>('/auth/check')
-      .then(res => {
-          if (res.auth) {
-            userStore.setUser(res.user);
-          }
-          userStore.resolveInit();
-          return res;
+        .then(res => {
+            if (res.auth) {
+              userStore.setUser(res.user);
+            } else {
+              userStore.clearUser();
+            }
+            return res;
+          })
+        .finally(() =>{
+          userStore.resolveInit()
         })
     },
   }

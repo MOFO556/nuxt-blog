@@ -1,5 +1,3 @@
-import type { Post } from "~/types/posts";
-
 export default defineNuxtRouteMiddleware(async (to) => {
   const userStore = useUserStore();
   const id = to.params.id as string;

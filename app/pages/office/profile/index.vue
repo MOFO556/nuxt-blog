@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import type { TabsItem } from '@nuxt/ui';
 
-  const { user } = useUserStore();
+  const { user, loggedIn } = useUserStore();
   const route = useRoute();
   const router = useRouter();
 
@@ -32,8 +32,8 @@
 </script>
 
 <template>
-  <UContainer v-if="user" class="flex flex-col gap-2 items-center mt-2 max-w-full">
-    <h2 class="text-3xl">Hello, <i>{{ user.login }}</i></h2>
+  <UContainer v-if="loggedIn" class="flex flex-col gap-2 items-center mt-2 max-w-full">
+    <h2 class="text-3xl">Hello, <i>{{ user!.login }}</i></h2>
 
     <UContainer class="flex flex-col md:flex-row gap-4 mt-2 items-start w-full max-w-full">
       <office-avatar-upload :editable="isEditTab" />

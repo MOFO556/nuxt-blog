@@ -27,6 +27,52 @@ export default defineNuxtConfig({
   auth: {
     webAuth: true
   },
+  hooks: {
+    async 'prerender:routes'(ctx) {
+      const dbFile =
+        process.env.NUXT_DB_FILE || "./.data/db/stash.db";
+
+      const { default: Database } = await import("better-sqlite3");
+
+      const db = new Database(dbFile, {
+        readonly: true,
+        fileMustExist: true,
+      });
+
+      try {
+        const tags = db
+          .prepare(`
+            SELECT t.slug AS slug
+            FROM Tag t
+            JOIN PostTag pt ON pt.tag_id = t.id
+            GROUP BY t.id
+            ORDER BY COUNT(pt.post_id) DESC, t.name ASC
+            LIMIT 10
+          `)
+          .all() as { slug: string }[];
+
+        const authors = db
+          .prepare(`
+            SELECT u.login AS login
+            FROM User u
+            JOIN Post p ON p.userId = u.id
+            GROUP BY u.id
+            ORDER BY COUNT(p.id) DESC, u.login ASC
+          `)
+          .all() as { login: string }[];
+
+        for (const { slug } of tags) {
+          ctx.routes.add(`/posts/tag/${encodeURIComponent(slug)}`);
+        }
+
+        for (const { login } of authors) {
+          ctx.routes.add(`/posts/author/${encodeURIComponent(login)}`);
+        }
+      } finally {
+        db.close();
+      }
+    },
+  },
   hub: {
     blob: {
       driver: "fs",
@@ -59,9 +105,14 @@ export default defineNuxtConfig({
   },
   nitro: {
     experimental: { tasks: true, websocket: true },
+    prerender: {
+      crawlLinks: true,
+      ignore: ['/_ipx/**'],
+      failOnError: false,
+    },
     scheduledTasks: {
       "*/10 * * * *": ["posts:enrich", "cleanup:orphan-images", "cleanup:webauthn-attempts"],
-      "0 4 * * *": ["cleanup:sessions"],
+      "0 4 * * *": ["cleanup:sessions", "cleanup:tags"],
     }
   },
   modules: [
@@ -154,7 +205,7 @@ export default defineNuxtConfig({
     },
     "/**": {
       headers: { "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload" },
-    },
+    }
   },
   ui: {
     experimental: {

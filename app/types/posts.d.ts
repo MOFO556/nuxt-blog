@@ -7,9 +7,11 @@ export type Post = PostInsert & {
   updatedAt: string,
   userId: number,
   user: Omit<User, "password">
+  tags: Tag[],
   attachments?: PostImageMeta[]
 }
 
+export type Tag = { name: string; slug: string };
 export type PostImageMeta = ImageMeta & { postCover?: boolean };
 export type PostItemUploadMeta = ItemUploadMeta & { postCover?: boolean };
 

@@ -5,7 +5,7 @@ export default defineNuxtPlugin({
     const { resolveInit, resetInit } = useUserStore();
     resetInit();
     const { $api } = useNuxtApp();
-    if (import.meta.server || !useNuxtApp().payload.serverRendered)
+    if (import.meta.browser || useNuxtApp().payload.serverRendered)
       $api.auth.check();
     else
       resolveInit()

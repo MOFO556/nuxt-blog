@@ -3,6 +3,7 @@ export * from "./auth/users";
 export * from "./auth/webauthnAttempts";
 export * from "./auth/sessions";
 export * from "./posts";
+export * from "./tags";
 export * from "./images";
 export * from "./comments";
 export * from "./commentsAttachment";

@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
             },
           },
         },
+        postTags: { with: { tag: { columns: { id: true, name: true, slug: true } } } },
       },
     });
     
@@ -29,6 +30,8 @@ export default defineEventHandler(async (event) => {
 
   return {
       ...rawPost,
+      tags: rawPost.postTags.map(pt => pt.tag),
+      postTags: undefined,
       attachments: rawPost.attachments.map(att => ({
         path: att.image?.path,
         postCover: att?.postCover,

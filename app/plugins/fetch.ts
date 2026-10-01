@@ -1,6 +1,7 @@
 import { createCommentsRepository } from "~/repository/comments";
 import { createImagesRepository } from "~/repository/images";
 import { createPostsRepository } from "~/repository/posts";
+import { createTagsRepository } from "~/repository/tags";
 import { createUserRepository } from "~/repository/user";
 
 export default defineNuxtPlugin({
@@ -25,7 +26,8 @@ export default defineNuxtPlugin({
       auth: createUserRepository(appFetch),
       posts: createPostsRepository(appFetch),
       comments: createCommentsRepository(appFetch),
-      images: createImagesRepository(appFetch)
+      images: createImagesRepository(appFetch),
+      tags: createTagsRepository(appFetch)
     }
     
     return {

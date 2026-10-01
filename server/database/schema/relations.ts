@@ -7,6 +7,7 @@ import { images } from './images';
 import { comments } from './comments';
 import { commentAttachments } from './commentsAttachment';
 import { postAttachments } from './postsAttachment';
+import { postTags, tags } from './tags';
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   posts: many(posts),
@@ -34,6 +35,7 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   }),
   comments: many(comments),
   attachments: many(postAttachments),
+  postTags: many(postTags),
 }));
 
 export const imagesRelations = relations(images, ({ many }) => ({
@@ -90,4 +92,9 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
     fields: [sessions.credentialId],
     references: [credentials.id]
   }),
+}));
+
+export const postTagsRelations = relations(postTags, ({ one }) => ({
+  post: one(posts, { fields: [postTags.postId], references: [posts.id] }),
+  tag:  one(tags,  { fields: [postTags.tagId],  references: [tags.id] }),
 }));

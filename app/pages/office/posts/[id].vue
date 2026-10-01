@@ -16,11 +16,7 @@
 </script>
 
 <template>
-    <NuxtPage 
-      :id="Number(id)" 
-      :title="data?.title" 
-      :url="data?.url" 
-      :content="data?.content"
+    <NuxtPage
       :imageSrcs="data?.attachments"
       :post="data"/>
 </template>

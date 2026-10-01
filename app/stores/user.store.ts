@@ -26,6 +26,9 @@ export const useUserStore = defineStore('UserStore', {
       if (data)
         this.user = { login: data.login, id: data.id, avatar: data.avatar };
     },
+    clearUser() {
+      this.user = null
+    },
     resetInit() {
       this.inited = false;
     },

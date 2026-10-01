@@ -1,12 +1,13 @@
+import type { Pagination } from "~/types/core";
 import type { Post, PostInsert } from "~/types/posts"
 
 export function createPostsRepository(appFetch: typeof $fetch) {
   return {
-    async all() {
+    async all(query: Record<string, any> = {}) {
       const postsStore = usePostsStore();
-      return appFetch<Post[]>(`posts/`)
+      return appFetch<Pagination<Post[]>>(`posts/`, { query })
         .then(res => {
-          postsStore.addPosts(res);
+          postsStore.addPosts(res.data);
           return res;
         })
     },

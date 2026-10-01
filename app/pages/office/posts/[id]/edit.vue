@@ -1,23 +1,25 @@
 <script setup lang="ts">
-  import type { PostImageMeta } from '~/types/posts';
-
-  const { params } = useRoute();
-  const id = computed(() => Number(params.id as string));
-  const { title = '', content = '', url = '', imageSrcs = [] } = defineProps<{
-      url?: string,
-      title?: string,
-      content?: string,
+  import type { Post, PostImageMeta } from '~/types/posts';
+  const { post, imageSrcs = [] } = defineProps<{
+      post: Post,
       imageSrcs?: PostImageMeta[]
     }>();
   
   useHead({
-    title: `Post${title ? title + ' ' : '' } editing`,
+    title: `Post${post.title ? post.title + ' ' : '' } editing`,
     meta: [
-      { name: 'description', content: `Edit your blog post${title ? title + ' ' : '' }` },
+      { name: 'description', content: `Edit your blog post${post.title ? post.title + ' ' : '' }` },
     ]
   });
 </script>
 
 <template>
-  <posts-form :id="id" :title="title" :content="content" :url="url" :images="imageSrcs"></posts-form>
+  <posts-form 
+    :id="post.id" 
+    :title="post.title" 
+    :content="post.content" 
+    :url="post.url" 
+    :tags="post.tags"
+    :images="imageSrcs"
+    ></posts-form>
 </template>

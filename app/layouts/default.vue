@@ -29,20 +29,6 @@ const navItems = computed(() => {
       <UColorModeButton />
       <UButton variant="outline" color="neutral" :to="{ name: 'auth-login' }">Sign In</UButton>
       <UButton variant="outline" :to="{ name: 'auth-register' }">Sign Up</UButton>
-      <!-- <UPopover
-        :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
-        :ui="{ content: 'w-56 p-2' }">
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-menu"
-          aria-label="Menu"/>
-        <template #content>
-          <UNavigationMenu
-            :items="navItems('popover')"
-            orientation="vertical"/>
-        </template>
-      </UPopover> -->
     </template>
     <template #body>
       <UNavigationMenu :items="navItems('mobile')" orientation="vertical" class="-mx-2.5" />

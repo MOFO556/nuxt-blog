@@ -1,14 +1,15 @@
 <script setup lang="ts">
   import { z } from 'zod';
   import type { UploadMethodResultItem } from '~/types/forms';
-  import type { Post, PostImageMeta, PostItemUploadMeta } from '~/types/posts';
+  import type { Post, PostImageMeta, PostItemUploadMeta, Tag } from '~/types/posts';
 
-  const { title = '', content = '', url = '', images, id } = defineProps<{
+  const { title = '', content = '', url = '', images, tags = [], id } = defineProps<{
         url?: string,
         title?: string,
         content?: string,
         images?: PostImageMeta[],
         id?: number
+        tags?: Tag[]
       }>();
   const { $api } = useNuxtApp();
   const coverIndex = ref<number | null>(null);
@@ -23,6 +24,15 @@
       description: undefined,
       file: undefined
     });
+
+  const { data: fetchedTags } = await useAsyncData(`all-tags-on-post-${id}-edit`, $api.tags.all, {
+    default: () => [] as { name: string; slug: string }[],
+  });
+
+  const allTags = ref<Tag[]>((fetchedTags.value ?? []));
+
+  const slugify = (s: string) =>
+    s.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
 
   const onModalToOpen = (file: File & { description?: string }, path: string) => {
     imagePreviewModal.open = true;
@@ -52,12 +62,13 @@
       content: content,
       url: url,
       images: [] as File[],
+      tags: tags,
       ...(id ? { id }: {})
     },
     "id",
     async (res: Post) => {
       if (id) {
-        await refreshNuxtData(`office-post${id}`);
+        await refreshNuxtData(`office-post-${id}`);
         navigateTo({ name: `office-posts-id`, params: { id }});      
       }
       else
@@ -184,6 +195,23 @@
         type="text"
         placeholder="Enter url"/>
     </UFormField >
+
+    <UFormField class="w-full"
+      label="Tags">
+      <USelectMenu class="w-full"
+        v-model="form.value.tags"
+        :items="allTags"
+        label-key="name"
+        create-item
+        @create="(query: string) => {
+          const name = query.trim();
+          allTags.push({ name, slug: slugify(name) })
+          form.value.tags.push({ name, slug: slugify(name) });
+        }"
+        multiple
+        searchable
+        placeholder="Pick or type new tags"/>
+    </UFormField>
 
     <UFormField class="w-full relative pb-2"
       label="Images" 

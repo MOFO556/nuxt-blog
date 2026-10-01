@@ -28,7 +28,7 @@
 
     <template #right>
       <UColorModeButton />
-
+      <ClientOnly>
         <UPopover
           :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
           :ui="{ content: 'w-56 p-2' }">
@@ -42,7 +42,10 @@
               :items="navItems('popover')"
               orientation="vertical"/>
           </template>
-        </UPopover>
+        </UPopover>        
+      </ClientOnly>
+          <!-- class="hidden @max-[1020px]:flex" -->
+
     </template>
     <template #body>
       <UNavigationMenu :items="navItems('mobile')" orientation="vertical" class="-mx-2.5" />
