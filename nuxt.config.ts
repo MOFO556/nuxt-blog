@@ -31,6 +31,12 @@ export default defineNuxtConfig({
     async 'prerender:routes'(ctx) {
       const dbFile =
         process.env.NUXT_DB_FILE || "./.data/db/stash.db";
+        
+      const { existsSync } = await import("node:fs");
+      if (!existsSync(dbFile)) {
+        console.warn(`[prerender] skipping popular tags — DB not found at ${dbFile}`);
+        return;
+      }
 
       const { default: Database } = await import("better-sqlite3");
 
