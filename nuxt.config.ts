@@ -1,5 +1,4 @@
 import { fileURLToPath } from "node:url";
-import { resolve } from "path";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -80,11 +79,29 @@ export default defineNuxtConfig({
     },
   },
   hub: {
-    blob: {
-      driver: "fs",
-      dir: ".data/files"
-    }
-  },  
+    // Local: filesystem under .data/files.
+    // Production (Docker / Render): Cloudflare R2 via S3_*
+    // Opt into R2 locally with NUXT_BLOB_DRIVER=s3..
+    blob:
+      process.env.NODE_ENV === "production" || process.env.NUXT_BLOB_DRIVER === "s3"
+        ? {
+            driver: "s3" as const,
+            accessKeyId:
+              process.env.S3_ACCESS_KEY_ID ||
+              process.env.LITESTREAM_ACCESS_KEY_ID ||
+              "",
+            secretAccessKey:
+              process.env.S3_SECRET_ACCESS_KEY ||
+              process.env.LITESTREAM_SECRET_ACCESS_KEY ||
+              "",
+            bucket:
+              process.env.S3_BUCKET || process.env.LITESTREAM_BUCKET || "",
+            region: process.env.S3_REGION || "auto",
+            endpoint:
+              process.env.S3_ENDPOINT || process.env.LITESTREAM_ENDPOINT,
+          }
+        : { driver: "fs" as const, dir: ".data/files" },
+  },
   icon: {
     clientBundle: {
       scan: true,
@@ -92,11 +109,6 @@ export default defineNuxtConfig({
     serverBundle: false,
   },
   image: {
-    ipx: {
-      fs: {        
-        dir: resolve(process.cwd(), ".data/files")
-      },
-    },
     providers: {
       nuxtHubBlobIpx: {
         name: "nuxtHubBlobIpx",
@@ -107,13 +119,13 @@ export default defineNuxtConfig({
         provider: "none",
       },
     },
-    provider: "nuxtHubBlobIpx",    
+    provider: "nuxtHubBlobIpx",
   },
   nitro: {
     experimental: { tasks: true, websocket: true },
     prerender: {
       crawlLinks: true,
-      ignore: ['/_ipx/**'],
+      ignore: ['/_ipx/**', '/_img/**'],
       failOnError: false,
     },
     scheduledTasks: {
@@ -192,9 +204,9 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
+    dbFile: process.env.NUXT_DB_FILE || "./.data/db/stash.db",
     public: {
-      dbFile: process.env.NUXT_DB_FILE || "./.data/db/stash.db",
-      API_URL:  process.env.NUXT_PUBLIC_API_URL || "http://localhost:5000"
+      API_URL: process.env.NUXT_PUBLIC_API_URL || "/api/",
     },
     webauthn: {
       rpID: process.env.NUXT_WEBAUTHN_RP_ID || "localhost",
@@ -235,10 +247,4 @@ export default defineNuxtConfig({
       },
     },
   },
-  /* routeRules: {
-    "/posts/**": {
-      ssr: false
-    }
-  } */
-  // pages: false
 })

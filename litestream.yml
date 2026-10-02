@@ -1,0 +1,8 @@
+dbs:
+  - path: ${NUXT_DB_FILE}
+    replica:
+      type: s3
+      bucket: ${LITESTREAM_BUCKET}
+      path: db/stash.db
+      endpoint: ${LITESTREAM_ENDPOINT}
+      region: auto

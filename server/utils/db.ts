@@ -7,7 +7,7 @@ import * as schema from '../database/schema';
 type Db = ReturnType<typeof create>;
 
 function create() {
-  const file = useRuntimeConfig().public.dbFile;
+  const file = useRuntimeConfig().dbFile;
   mkdirSync(dirname(file), { recursive: true });
 
   const sqlite = new Database(file);
