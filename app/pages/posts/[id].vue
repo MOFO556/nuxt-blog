@@ -1,6 +1,10 @@
 <script setup lang="ts">
   import type { Post } from '~/types/posts';
 
+  definePageMeta({
+    validate: (route) => /^\d+$/.test(String(route.params.id ?? '')),
+  });
+
   const { params } = useRoute();
   const id = computed(() => params.id as string);
   const { $api } = useNuxtApp();

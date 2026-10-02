@@ -4,9 +4,12 @@ import { fileURLToPath } from "node:url";
 export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
   css: ["~/assets/css/main.css","~/assets/css/main.scss"],
-  devtools: { enabled: process.env.NODE_ENV === 'development' },
+  devtools: { enabled: process.env.NODE_ENV === "development" },
   future: {
     compatibilityVersion: 4
+  },
+  experimental: {
+    payloadExtraction: false,
   },
   alias: {
     "#components": fileURLToPath(new URL("../app/components", import.meta.url)),
@@ -19,7 +22,8 @@ export default defineNuxtConfig({
         lang: "en"
       },
       link: [
-        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
+        { rel: "apple-touch-icon", sizes: "180x180", href: "/icons/apple-touch-icon-180x180.png" },
       ],
     }
   },
@@ -27,7 +31,7 @@ export default defineNuxtConfig({
     webAuth: true
   },
   hooks: {
-    async 'prerender:routes'(ctx) {
+    async "prerender:routes"(ctx) {
       const dbFile =
         process.env.NUXT_DB_FILE || "./.data/db/stash.db";
         
@@ -125,7 +129,7 @@ export default defineNuxtConfig({
     experimental: { tasks: true, websocket: true },
     prerender: {
       crawlLinks: true,
-      ignore: ['/_ipx/**', '/_img/**'],
+      ignore: ["/_ipx/**", "/_img/**"],
       failOnError: false,
     },
     scheduledTasks: {
@@ -139,28 +143,28 @@ export default defineNuxtConfig({
     "@nuxt/fonts",
     "@nuxt/hints",
     "@nuxt/image", 
-    '@nuxtjs/critters',
+    "@nuxtjs/critters",
     "@pinia/nuxt",
-    '@vite-pwa/nuxt',
+    "@vite-pwa/nuxt",
     "nuxt-auth-utils",
   ],
   pwa: {
-    devOptions: {
-      enabled: true,
-    },
+    disable: process.env.NODE_ENV !== "production",
     registerType: "autoUpdate",
+    registerWebManifestInRouteRules: true,
     includeAssets: [
-      "icons/favicon.ico",
+      "favicon.ico",
       "icons/apple-touch-icon-180x180.png",
       "icons/maskable-icon-512x512.png",
     ],
     manifest: {
-      name: "MOFO Nuxt",
+      name: "MOFONuxt",
       short_name: "MOFOApp",
       description: "A PWA built with Vue 3",
       theme_color: "#ffffff",
+      background_color: "#ffffff",
       display: "standalone",
-      start_url: ".",
+      start_url: "/",
       icons: [
         {
           src: "icons/pwa-64x64.png",
@@ -184,21 +188,37 @@ export default defineNuxtConfig({
           type: "image/png",
           purpose: "maskable",
         },
-        {
-          src: "icons/apple-touch-icon-180x180.png",
-          sizes: "180x180",
-          type: "image/png",
-          purpose: "maskable",
-        },
       ],
     },
+    client: {
+      installPrompt: false,
+    },
     workbox: {
-      globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-      globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', '**/_nuxt/builds/**/*.json'],
+      globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+      globIgnores: ["**/node_modules/**/*","sw.js","workbox-*.js","**/_nuxt/builds/**/*.json",],
+      navigateFallback: "/",
+      navigateFallbackDenylist: [
+        /^\/api\//,
+        /^\/_nuxt\//,
+        /^\/_img\//,
+        /^\/_ws/i,
+        /^\/sw\.js$/i,
+        /^\/workbox/i,
+        /_payload\.json/i,
+        /^\/manifest\.webmanifest$/i,
+      ],
       runtimeCaching: [
         {
           urlPattern: /^\/_nuxt\/.*/,
-          handler: 'NetworkOnly',
+          handler: "NetworkOnly",
+        },
+        {
+          urlPattern: /\/_payload\.json/i,
+          handler: "NetworkOnly",
+        },
+        {
+          urlPattern: /^\/api\/.*/,
+          handler: "NetworkOnly",
         },
       ],
     },
@@ -233,7 +253,7 @@ export default defineNuxtConfig({
   vite: {
     server: {
       hmr: {
-        ...(process.env.NODE_ENV === 'development' && {
+        ...(process.env.NODE_ENV === "development" && {
           clientPort: (() => {
             const appOrigin = process.env.NUXT_PUBLIC_APP_ORIGIN
             if (appOrigin) {

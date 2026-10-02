@@ -1,13 +1,11 @@
 <script setup lang="ts">
   import type { FilteredNavigationMenuItem, MenuFilters } from '~/types/core';
 
-  const { loggedIn } = useUserStore();
   const { items } = useNavigationItems();
   const navItems = computed(() => {
-    return (filterParam: MenuFilters) => 
+    return (filterParam: MenuFilters) =>
       items.value.filter((i: FilteredNavigationMenuItem) => {
-      return (loggedIn && i.filterKeys.includes("auth") 
-        || !loggedIn && i.filterKeys.includes("guest")) && i.filterKeys.includes(filterParam)
+      return i.filterKeys.includes("auth") && i.filterKeys.includes(filterParam)
     })
   });
   const toaster = { position: 'top-right' as const }
@@ -20,16 +18,19 @@
         container: 'max-w-full'
       }">
     <template #title>
-      <img class="h-6 w-auto" src="/icon.png" alt="blog icon"></img>
+      <img class="h-6 w-auto" src="/icon.png" alt="blog icon" />
 			Blog
     </template>
 
     <UNavigationMenu :items="navItems('inline')" />
 
     <template #right>
-      <UColorModeButton />
+      <ClientOnly>
+        <UColorModeButton />
+      </ClientOnly>
       <ClientOnly>
         <UPopover
+          class="hidden lg:inline-flex"
           :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
           :ui="{ content: 'w-56 p-2' }">
           <UButton
@@ -42,18 +43,16 @@
               :items="navItems('popover')"
               orientation="vertical"/>
           </template>
-        </UPopover>        
+        </UPopover>
       </ClientOnly>
-          <!-- class="hidden @max-[1020px]:flex" -->
 
     </template>
     <template #body>
       <UNavigationMenu :items="navItems('mobile')" orientation="vertical" class="-mx-2.5" />
     </template>
 		</UHeader>
-    <UPage>      
+    <UPage>
       <slot></slot>
     </UPage>
 	</UApp>
  </template>
- 

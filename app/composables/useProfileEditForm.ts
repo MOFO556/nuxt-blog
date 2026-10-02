@@ -9,7 +9,7 @@ export function useProfileEditForm() {
   const { $api } = useNuxtApp();
   const toast = useToast();
   const userStore = useUserStore();
-  const isDefaultPicture = ref(!userStore.user?.avatar);
+  const isDefaultPicture = computed(() => !userStore.user?.avatar);
 
   const form = useForm<ProfileFormData, { ok: boolean }>(
     {

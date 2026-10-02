@@ -3,18 +3,20 @@ import { createImagesRepository } from "~/repository/images";
 import { createPostsRepository } from "~/repository/posts";
 import { createTagsRepository } from "~/repository/tags";
 import { createUserRepository } from "~/repository/user";
+import { buildAppFetchHeaders } from "~/utils/fetch-headers";
 
 export default defineNuxtPlugin({
   name: 'fetch',
-  parallel: true,
+  dependsOn: ['pinia'],
   async setup(){
     const config = useRuntimeConfig();
+    const tokenCookie = useCookie<string | null>('token', { default: () => null });
     const appFetch = $fetch.create({
       baseURL: config.public.API_URL,
       onRequest({ options }) {
-        const headers = buildAppFetchHeaders();
+        const headers = buildAppFetchHeaders(tokenCookie.value);
         for (const [key, value] of Object.entries(headers)) {
-          options.headers.append(key, value);
+          options.headers.set(key, value);
         }
       },
       async onResponseError({ response }) {

@@ -69,10 +69,10 @@
     async (res: Post) => {
       if (id) {
         await refreshNuxtData(`office-post-${id}`);
-        navigateTo({ name: `office-posts-id`, params: { id }});      
+        return;
       }
-      else
-        navigateTo({ name: "posts-id", ...(res?.id ? { params: {id: res.id } } : {} )})
+      if (res?.id)
+        await navigateTo(`/office/posts/${res.id}`);
     },
     schema
   );

@@ -1,12 +1,12 @@
 <script setup lang="ts">
   import type { CredentialsInfo } from '~/types/user';
-import ConfirmDialog from '../confirm-dialog.vue';
+  import { LazyConfirmDialog } from '#components';
 
   const { $api } = useNuxtApp();
   const { user } = useUserStore();
   const toast = useToast();
   const overlay = useOverlay();
-  const confirm = overlay.create(ConfirmDialog);
+  const confirm = overlay.create(LazyConfirmDialog);
 
   const { data: credentials, refresh: refreshCredentials } = await useAsyncData<CredentialsInfo[]>(
     'credentials-info',
@@ -57,7 +57,7 @@ import ConfirmDialog from '../confirm-dialog.vue';
 <template>
   <UContainer class="flex flex-col w-full items-start max-w-full">
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <UCard v-for="connection in credentials ?? []" :key="connection.id"
+      <LazyUCard v-for="connection in credentials ?? []" :key="connection.id"
         class="w-full"
         :ui="{ header: 'p-2 sm:px-4', body: 'p-2 sm:p-4' }">
         <template #header>
@@ -80,7 +80,7 @@ import ConfirmDialog from '../confirm-dialog.vue';
             {{ formatDate(connection.createdAt) }}
           </span>
         </div>
-      </UCard>
+      </LazyUCard>
     </div>
 
     <UButton class="mt-2"

@@ -1,8 +1,8 @@
 <script setup lang="ts">
   const userStore = useUserStore();
 
-  const isHydrating = ref(false)
-  onNuxtReady(() => { isHydrating.value = true })
+  const isHydrating = ref(false);
+  onNuxtReady(() => { isHydrating.value = true });
   const isReadySetLayout = computed(() => isHydrating.value);
 
   const currentLayout = computed(() => {
@@ -14,6 +14,7 @@
 </script>
 
 <template>
+  <NuxtPwaManifest />
   <NuxtLayout :name="currentLayout">
     <NuxtPage />
   </NuxtLayout>

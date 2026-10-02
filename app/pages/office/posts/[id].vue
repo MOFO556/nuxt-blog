@@ -1,6 +1,7 @@
 <script setup lang="ts">
   definePageMeta({
     middleware: ['post-owner'],
+    validate: (route) => /^\d+$/.test(String(route.params.id ?? '')),
   });
 
   const { params } = useRoute();

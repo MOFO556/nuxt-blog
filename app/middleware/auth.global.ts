@@ -1,27 +1,17 @@
-import { until } from '@vueuse/core';
+const AUTH_REQUIRED_REDIRECT = '/auth/login';
 
-export default defineNuxtRouteMiddleware(async (to, from) => {
+export default defineNuxtRouteMiddleware((to) => {
   const userStore = useUserStore();
+  const token = useCookie<string | null>('token', { default: () => null });
 
-  if (import.meta.browser) {
-    await until(() => userStore.inited).toBeTruthy();
-    /**
-     * BAD-BAD workaround the hydration fails
-     */
-    if (!userStore.loggedIn) {
-      userStore.clearUser();
-      const { $api } = useNuxtApp();
-      onNuxtReady(() =>  $api.auth.check())
-    }
-  }
+  const requiresAuth = to.matched.some(rec => rec.meta.auth);
+  const requiresGuest = to.matched.some(rec => rec.meta.guest);
 
-  const isAuthenticated = userStore.loggedIn;
-  
-  if (to.matched.some(rec => rec.meta.auth) && !isAuthenticated)
-    return navigateTo('/auth/login');
-  else if (to.matched.some(rec => rec.meta.guest) && isAuthenticated) {
+  const hasSession = userStore.loggedIn || Boolean(token.value);
+
+  if (requiresAuth && !hasSession)
+    return navigateTo(AUTH_REQUIRED_REDIRECT);
+
+  if (requiresGuest && userStore.inited && userStore.loggedIn)
     return navigateTo('/');
-  }
-  else
-    return;
 });

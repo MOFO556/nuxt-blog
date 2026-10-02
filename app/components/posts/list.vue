@@ -48,8 +48,11 @@
           v-for="post in blogPosts"
           :key="post.id"
           :to="`/posts/${post.id}`"
-          :image="post.attachments?.find(i => i.postCover)?.path"
-          v-bind="post">
+          :title="post.title"
+          :description="post.content"
+          :date="post.date"
+          :authors="post.authors"
+          :image="post.attachments?.find(i => i.postCover)?.path">
           <template #badge>
             <posts-tags :tags="post.tags ?? []" />
           </template>

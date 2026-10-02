@@ -26,19 +26,16 @@
       variant="outline"
       @click="filtersOpen = true">
       Filters
-      <UBadge v-if="activeCount" color="primary" variant="solid" size="xs">
+      <LazyUBadge v-if="activeCount" color="primary" variant="solid" size="xs">
         {{ activeCount }}
-      </UBadge>
+      </LazyUBadge>
     </UButton>
     <ClientOnly>
-      <LazyUButton v-if="loggedIn"
+      <UButton v-if="loggedIn"
         class="ml-2"
         to="/office/posts/create"
         icon="i-lucide-file-plus"
-        variant="outline">Create</LazyUButton>
-      <template #fallback>
-        <NuxtLink to="/office/posts/create" />
-      </template>      
+        variant="outline">Create</UButton>
     </ClientOnly>
   </nav>
 

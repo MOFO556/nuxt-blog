@@ -4,6 +4,7 @@ import type { UserResp, ProfileFormData, SessionsInfo } from "~/types/user";
 
 export function createUserRepository(appFetch: typeof $fetch) {
   const userStore = useUserStore();
+  const tokenCookie = useCookie<string | null>('token', { default: () => null });
   return {
     async register(payload: { login: string, password: string, avatar?: ItemUploadMeta }): Promise<UserResp> {
       return appFetch<UserResp>('/auth/register', { 
@@ -11,9 +12,7 @@ export function createUserRepository(appFetch: typeof $fetch) {
             body: payload
           }
         ).then(res => {
-          const userCookie = useCookie<(string| null)>
-            ('token', { default: () => null });
-          userCookie.value = res.token;
+          tokenCookie.value = res.token;
           userStore.setUser(res.user);
           return res;
         });
@@ -24,9 +23,7 @@ export function createUserRepository(appFetch: typeof $fetch) {
             body: payload
           }
         ).then(res => {
-          const userCookie = useCookie<(string| null)>
-            ('token', { default: () => null });
-          userCookie.value = res.token;
+          tokenCookie.value = res.token;
           userStore.setUser(res.user);
           return res;
         })
@@ -51,9 +48,7 @@ export function createUserRepository(appFetch: typeof $fetch) {
         method: 'POST',
         body: { attemptId, response: attestation },
       }).then(res => {
-          const userCookie = useCookie<(string| null)>
-            ('token', { default: () => null });
-          userCookie.value = res.token;
+          tokenCookie.value = res.token;
           userStore.setUser(res.user);
           return res;
         });
@@ -78,9 +73,7 @@ export function createUserRepository(appFetch: typeof $fetch) {
         method: 'POST',
         body: { attemptId, response: assertion },
       }).then(res => {
-          const userCookie = useCookie<(string| null)>
-            ('token', { default: () => null });
-          userCookie.value = res.token;
+          tokenCookie.value = res.token;
           userStore.setUser(res.user);
           return res;
         })

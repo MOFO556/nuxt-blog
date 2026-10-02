@@ -16,17 +16,17 @@
         variant="outline">Create</UButton>
     </div>
 
-    <UBlogPosts v-if="posts?.length">
-      <UBlogPost
+    <LazyUBlogPosts v-if="posts?.length">
+      <LazyUBlogPost
         v-for="post in blogPost"
         :key="post.id"
         :to="`/office/posts/${post.id}`"
         :image="post.attachments?.find(i => i.postCover)?.path"
         v-bind="post"
       />
-    </UBlogPosts>
+    </LazyUBlogPosts>
 
-    <UAlert v-else-if="error" color="error"
+    <LazyUAlert v-else-if="error" color="error"
       :title="error.message"/>
 
     <UEmpty v-else

@@ -40,16 +40,16 @@
 
       <UTabs v-model="active" variant="link" :items="tabs" class="w-full">
         <template #profile>
-          <office-profile-edit v-if="visited['profile-edit']" />
+          <lazy-office-profile-edit v-if="visited['profile-edit']" />
         </template>
         <template #credentials>
-          <office-credentials v-if="visited['credentials']" />
+          <lazy-office-credentials v-if="visited['credentials']" />
         </template>
         <template #sessions>
-          <office-sessions v-if="visited['sessions']" />
+          <lazy-office-sessions v-if="visited['sessions']" />
         </template>
         <template #posts>
-          <office-posts v-if="visited['posts']" />
+          <lazy-office-posts v-if="visited['posts']" />
         </template>
       </UTabs>
     </UContainer>
