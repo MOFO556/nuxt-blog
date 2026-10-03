@@ -6,10 +6,11 @@ const paramsSchema = z.object({ id: z.coerce.number().int().positive() });
 
 export default defineEventHandler(async event => {
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse);
-  
   const item = getRouterParam(event, 'item');
-  // const id = getRouterParam(event, 'id');
-  
+
+  if (item !== 'post')
+    throw createError({ statusCode: 400, statusMessage: 'Unsupported comment target' });
+
   const commentsArray = await useDb().query.comments.findMany({
       where: eq(comments.postId, id),
       with: {
@@ -29,7 +30,8 @@ export default defineEventHandler(async event => {
             image: {
               columns: {
                 path: true,
-                description: true
+                description: true,
+                name: true,
               },
             },
           },
@@ -43,17 +45,22 @@ export default defineEventHandler(async event => {
 
   return commentsArray.map(comment => {
     const avatar = comment.user.avatar?.path;
+    const isDeleted = !!comment.deletedAt;
     return {
       ...comment,
+      text: isDeleted ? '' : comment.text,
       user: {
         id: comment.user.id,
         login: comment.user.login,
         avatar
       },
-      attachments: comment.attachments.map(att => ({
-        path: att.image?.path,
-        description: att.image?.description,
-      })),
+      attachments: isDeleted
+        ? []
+        : comment.attachments.map(att => ({
+            path: att.image?.path,
+            description: att.image?.description,
+            name: att.image?.name,
+          })),
     }
   });
 })

@@ -6,6 +6,8 @@ export type ValidationError = [string, string, [string, string]];
 
 export type Method<T extends Record<string, unknown>, P> = ((data: T) => Promise<P>);
 
+export type SubmitMethod<P> = (data: never) => Promise<P>;
+
 type UploadPayload =
   | File
   | File[]

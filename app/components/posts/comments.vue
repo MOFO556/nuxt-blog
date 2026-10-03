@@ -2,36 +2,102 @@
   import type { Comment } from '~/types/comments';
   import type { ImageMeta } from '~/types/core';
   import type { Post } from '~/types/posts';
+  import { buildCommentTree, flattenCommentTree } from '~/utils/comment-tree';
 
   const { post } = defineProps<{post: Post }>();
   const { $api } = useNuxtApp();
   const { loggedIn } = useUserStore();
-  const imagePreviewModal = reactive<{
-        open: boolean;
-        picture?: string;
-        description?: string;
-        comment?: Comment;
-    }>({
-      open: false,
-      picture: undefined,
-      description: undefined,
-      comment: undefined
-    });
+  const imagePreviewModal = reactive<{ open: boolean, picture?: string, description?: string, comment?: Comment; }>({
+    open: false,
+    picture: undefined,
+    description: undefined,
+    comment: undefined
+  });
   const { user } = useUserStore();
 
   const { data: comments} = await useAsyncData<Comment[]>(
     `comments-post${post.id}`, $api.comments.getToPost.bind(null, post.id));
 
+  const flatComments = computed(() =>
+    flattenCommentTree(buildCommentTree(comments.value ?? [])));
+
   const { on } = useRealtime();
+
+  const upsertComment = (comment: Comment) => {
+    const list = comments.value ?? [];
+    const idx = list.findIndex(c => c.id === comment.id);
+    if (idx === -1) {
+      comments.value = [comment, ...list];
+      return;
+    }
+    const next = [...list];
+    const prev = next[idx]!;
+    next[idx] = {
+      ...prev,
+      ...comment,
+      user: comment.user ?? prev.user,
+      attachments: comment.attachments ?? (comment.deletedAt ? [] : prev.attachments),
+      text: comment.deletedAt ? '' : (comment.text ?? prev.text),
+    };
+    comments.value = next;
+  };
+
+  const patchAttachmentDescriptions = (
+    commentId: number,
+    updates: { path: string, description?: string }[],
+  ) => {
+    const list = comments.value ?? [];
+    const idx = list.findIndex(c => c.id === commentId);
+    if (idx === -1)
+      return;
+
+    const prev = list[idx]!;
+    const byPath = new Map(updates.map(u => [u.path, u.description]));
+    const attachments = (prev.attachments ?? []).map(att =>
+      att.path && byPath.has(att.path)
+        ? { ...att, description: byPath.get(att.path) }
+        : att,
+    );
+
+    const next = [...list];
+    next[idx] = { ...prev, attachments };
+    comments.value = next;
+
+    if (
+      imagePreviewModal.comment?.id === commentId
+      && imagePreviewModal.picture
+      && byPath.has(imagePreviewModal.picture)
+    ) {
+      imagePreviewModal.description = byPath.get(imagePreviewModal.picture);
+      if (imagePreviewModal.comment.attachments) {
+        imagePreviewModal.comment = {
+          ...imagePreviewModal.comment,
+          attachments,
+        };
+      }
+    }
+  };
 
   const off = on(`post:${post.id}`, (payload) => {
     if (payload.type === 'comment:created') {
       const { comment } = payload;
-      if (comments.value?.some(c => c.id === comment.id)) 
+      if (comments.value?.some(c => c.id === comment.id))
         return;
-
       comments.value = [comment, ...(comments.value ?? [])];
-    };
+    }
+    else if (payload.type === 'comment:updated') {
+      refreshNuxtData(`comments-post${post.id}`);
+    }
+    else if (payload.type === 'comment:deleted') {
+      upsertComment({
+        ...payload.comment,
+        text: '',
+        attachments: [],
+      });
+    }
+    else if (payload.type === 'comment:attachment-updated') {
+      patchAttachmentDescriptions(payload.commentId, payload.attachments ?? []);
+    }
   });
   
   onBeforeUnmount(off);
@@ -76,46 +142,14 @@
     <ClientOnly>
       <comment-form v-if="loggedIn" class="my-5" :postId="post.id"></comment-form>
     </ClientOnly>
-    <template v-if="!!comments?.length">
-      <h1 class="mt-5">Comments</h1>
-      <LazyUCard v-for="comment in comments" :key="comment.id"
-        class="m-2"
-        variant="soft"
-        :ui="{ header: 'p-2 sm:px-2' }">
-        <template #header>
-          <UContainer class="flex gap-2 px-0 sm:px-0 lg:px-0 items-center justify-between text-xs">
-            <ClientOnly>
-              <UContainer class="flex gap-2 items-center justify-start">              
-                <UAvatar 
-                  :src="comment.user.avatar || '/images/default-avatar.png'"
-                  :alt="`${comment.user?.login ? comment.user.login : 'User'} icon`"
-                  provider="none" 
-                  size="xs"></UAvatar>
-                <pre>{{ comment.user.login }}</pre>
-              </UContainer>              
-            </ClientOnly>
-            <pre>{{ comment.createdAt }}</pre>
-          </UContainer>
-        </template>
-
-        <template #default  v-if="!!comment.text">
-          <pre>{{ comment.text }}</pre>
-        </template>
-
-        <template #footer v-if="comment.attachments?.length">
-          <LazyUCarousel class="mt-2 w-full mx-auto"
-            v-slot="{ item, index }"
-            :items="comment.attachments"
-            :ui="{ item: 'basis-1/3', container: 'justify-center' }">
-            <LazyNuxtImg class="expandable"
-              :src="item.path?.startsWith('/') ? `${item.path}` : `/${item.path}`" 
-              :alt="item.description ? item.description : `comment image ${comment.id}-${index}`" 
-              sizes="200px sm:50px md:150px"
-              loading="lazy"
-              @click="onModalToOpen(item, comment)"></LazyNuxtImg>
-          </LazyUCarousel>
-        </template>
-      </LazyUCard>
+    <template v-if="!!flatComments.length">
+      <h2 class="mt-5">Comments</h2>
+      <posts-comment-item v-for="comment in flatComments"
+        :key="comment.id"
+        :comment="comment"
+        :post-id="post.id"
+        :depth="comment.depth"
+        @open-image="onModalToOpen" />
     </template>
     <UModal v-model:open="imagePreviewModal.open"
         :ui="{

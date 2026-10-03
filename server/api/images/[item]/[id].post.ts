@@ -1,6 +1,7 @@
 import { blob } from 'hub:blob';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { commentAttachments, comments, Image, images, InsertImage, postAttachments, posts } from '~~/server/database/schema';
+import { broadcast } from '~~/server/utils/broadcast';
 
 type ManifestEntry = { existing: string, description?: string, newFileName?: string };
 
@@ -54,6 +55,8 @@ export default eventHandler(async (event) => {
 
   const orphanBlobs: string[] = [];
   let created: Image[] = [];
+  let commentPostId: number | null = null;
+  const descriptionUpdates: { path: string, description?: string }[] = [];
 
   db.transaction((tx) => {
     /**
@@ -72,8 +75,7 @@ export default eventHandler(async (event) => {
         .leftJoin(images, eq(images.id, postAttachments.imageId)).all();
       }
     /**
-     * TODO: Editing comments - now is unavailable path
-     * Case: There is an actual comment to load attahments to
+     * Case: There is an actual comment to load attachments to (create-after-upload or edit)
      */
     else if (item === 'comments' && entityId !== null) {
       const currComment = tx.select().from(comments).where(eq(comments.id, entityId)).get();
@@ -82,6 +84,7 @@ export default eventHandler(async (event) => {
       if (currComment.userId !== userId)
         throw createError({ status: 403, statusMessage: "Not allowed! Foreigner comment to load attachments" });
 
+      commentPostId = currComment.postId;
       currentImages = tx.select({ id: images.id, path: images.path, name: images.name, description: images.description })
         .from(commentAttachments)
         .where(eq(commentAttachments.commentId, entityId))
@@ -107,11 +110,16 @@ export default eventHandler(async (event) => {
       created = tx.insert(images).values(newImages).returning().all();    
 
     if (existingPaths?.length)
-      currentImages.forEach(curr => {
+      currentImages = currentImages.map(curr => {
           const updated = manifest.find(m => m.existing === curr.path && m.description !== curr.description);
-          if (updated && curr.id !== null)
+          if (updated && curr.id !== null) {
             tx.update(images).set({ description: updated.description, updatedAt: sql`CURRENT_TIMESTAMP`})
               .where(eq(images.id, curr.id)).returning().all();
+            if (curr.path)
+              descriptionUpdates.push({ path: curr.path, description: updated.description });
+            return { ...curr, description: updated.description };
+          }
+          return curr;
         });
   });
 
@@ -120,6 +128,14 @@ export default eventHandler(async (event) => {
       throw createError({ statusCode: 500, statusMessage: 'Unable to delete file', data: e })
     })
   ));
+
+  if (item === 'comments' && entityId !== null && commentPostId != null && descriptionUpdates.length) {
+    broadcast(`post:${commentPostId}`, {
+      type: 'comment:attachment-updated',
+      commentId: entityId,
+      attachments: descriptionUpdates,
+    });
+  }
 
   setResponseStatus(event, created.length ? 201 : 200);
   return [...currentImages.filter(i => i.path !== null), ...created];

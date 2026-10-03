@@ -19,7 +19,7 @@
   const provider = computed(() =>
     isDefaultPicture
       ? 'none'
-      : 'ipx',
+      : 'nuxtHubBlobIpx',
   );
 </script>
 

@@ -43,6 +43,13 @@
       "when": 1790850708249,
       "tag": "0005_chief_mach_iv",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791009080665,
+      "tag": "0006_minor_slapstick",
+      "breakpoints": true
     }
   ]
 }

@@ -2,8 +2,8 @@ import { z } from 'zod';
 import type { ItemUploadMeta } from '~/types/core';
 
 import type {
-  Method, 
   ObjectParamsMethod,
+  SubmitMethod,
   UploadMethod, 
   UploadMethodResult, 
   UploadMethodResultItem, 
@@ -123,7 +123,7 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
   };
 
   const submit = async (
-    method: Method<TFormData, TApiRes>, 
+    method: SubmitMethod<TApiRes>, 
     options?: { 
       uploadMethod?: {
         [K in keyof TFormData as TFormData[K] extends File[] 
