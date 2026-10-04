@@ -1,6 +1,8 @@
+import { useAuthTokenCookie } from '~/utils/auth-cookie';
+
 export default defineNuxtRouteMiddleware(async (to) => {
   const userStore = useUserStore();
-  const token = useCookie<string | null>('token', { default: () => null });
+  const token = useAuthTokenCookie();
   const id = String(to.params.id ?? '');
   if (!id || !/^\d+$/.test(id))
     throw abortNavigation(createError({ statusCode: 404, statusText: 'No post found!' }));

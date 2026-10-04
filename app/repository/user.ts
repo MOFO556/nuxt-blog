@@ -1,10 +1,11 @@
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import type { ItemUploadMeta } from '~/types/core';
 import type { UserResp, ProfileFormData, SessionsInfo } from "~/types/user";
+import { useAuthTokenCookie } from '~/utils/auth-cookie';
 
 export function createUserRepository(appFetch: typeof $fetch) {
   const userStore = useUserStore();
-  const tokenCookie = useCookie<string | null>('token', { default: () => null });
+  const tokenCookie = useAuthTokenCookie();
   return {
     async register(payload: { login: string, password: string, avatar?: ItemUploadMeta }): Promise<UserResp> {
       return appFetch<UserResp>('/auth/register', { 

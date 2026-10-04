@@ -1,3 +1,5 @@
+import { useAuthTokenCookie } from '~/utils/auth-cookie';
+
 export function buildAppFetchHeaders(token?: string | null): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
@@ -5,7 +7,7 @@ export function buildAppFetchHeaders(token?: string | null): Record<string, stri
 
   const value = token !== undefined
     ? token
-    : useCookie<string | null>('token').value;
+    : useAuthTokenCookie().value;
 
   if (value)
     headers.Authorization = `Bearer ${value}`;

@@ -4,6 +4,7 @@ import { H3Event } from "h3";
 import { AUTH_JWT_ALG, AUTH_JWT_SECRET } from '../config/auth';
 import { publicUserColumns, User, users } from '../database/schema/auth/users';
 import { images, sessions } from '../database/schema';
+import { AUTH_SESSION_LIFETIME_MS, AUTH_SESSION_LIFETIME_SEC, AUTH_SESSION_TOUCH_INTERVAL_MS } from '~~/shared/auth';
 
 export async function requireAuth(event: H3Event) {
   const ctx = await loadSession(event);
@@ -11,10 +12,22 @@ export async function requireAuth(event: H3Event) {
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
   
   const age = Date.now() - new Date(ctx.session.lastSeenAt).getTime();
-  if (age > 60_000) {
+  if (age > AUTH_SESSION_TOUCH_INTERVAL_MS) {
+    const expiresAt = Date.now() + AUTH_SESSION_LIFETIME_MS;
     await useDb().update(sessions)
-      .set({ lastSeenAt: sql`CURRENT_TIMESTAMP` })
+      .set({
+        lastSeenAt: sql`CURRENT_TIMESTAMP`,
+        expiresAt,
+      })
       .where(eq(sessions.id, ctx.session.id));
+
+    const token = signToken(ctx.user.id, ctx.session.id);
+    setCookie(event, 'token', token, {
+      maxAge: AUTH_SESSION_LIFETIME_SEC,
+      sameSite: 'lax',
+      path: '/',
+    });
+    setHeader(event, 'x-auth-token', token);
   }
 
   event.context.user = ctx.user;
@@ -22,8 +35,21 @@ export async function requireAuth(event: H3Event) {
   return ctx;
 }
 
+function getRequestToken(event: H3Event): string | null {
+  const cookie = getCookie(event, 'token');
+  if (cookie)
+    return cookie;
+
+  const header = getHeader(event, 'Authorization') ?? '';
+  const [scheme, token] = header.split(' ');
+  if (scheme?.toLowerCase() === 'bearer' && token)
+    return token;
+
+  return null;
+}
+
 export async function loadSession(event: H3Event) {
-  const token = getCookie(event, 'token');
+  const token = getRequestToken(event);
   if (!token) 
     return null;
 
@@ -108,6 +134,6 @@ async function getUserByToken(
 export function signToken(userId: number, sessionId: string): string {
   return jwt.sign({ id: userId, sid: sessionId }, AUTH_JWT_SECRET, {
     algorithm: AUTH_JWT_ALG,
-    expiresIn: '7d',
+    expiresIn: AUTH_SESSION_LIFETIME_SEC,
   });
 }

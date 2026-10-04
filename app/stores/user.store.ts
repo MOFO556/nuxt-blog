@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import type { User } from "~/types/user";
+import { useAuthTokenCookie } from "~/utils/auth-cookie";
 
 export const useUserStore = defineStore('UserStore', {
   state: (): { user: Partial<User> | null, inited: boolean } => ({
@@ -18,7 +19,7 @@ export const useUserStore = defineStore('UserStore', {
       });
     },
     postRevokeCleanUp() {      
-      const authCookie = useCookie('token');
+      const authCookie = useAuthTokenCookie();
       authCookie.value = null;
       location.reload();        
     },

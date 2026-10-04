@@ -133,8 +133,8 @@ export default defineNuxtConfig({
       failOnError: false,
     },
     scheduledTasks: {
-      "*/10 * * * *": ["posts:enrich", "cleanup:orphan-images", "cleanup:webauthn-attempts"],
-      "0 4 * * *": ["cleanup:sessions", "cleanup:tags"],
+      "*/10 * * * *": ["posts:enrich", "cleanup:orphan-images", "cleanup:webauthn-attempts", "cleanup:sessions"],
+      "0 4 * * *": ["cleanup:tags"],
     }
   },
   modules: [

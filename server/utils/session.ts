@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { H3Event } from "h3";
 import { useLookUpIp } from "../composable/useLookUpIp";
 import { sessions } from "../database/schema/auth/sessions";
+import { AUTH_SESSION_LIFETIME_MS } from "~~/shared/auth";
 
 export async function createSession(event: H3Event, opts: {
     userId: number;
@@ -22,7 +23,7 @@ export async function createSession(event: H3Event, opts: {
     passwordSnapshot: opts.passwordSnapshot ?? null,
     ip, userAgent,
     city: geo?.city, country: geo?.country,
-    expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+    expiresAt: Date.now() + AUTH_SESSION_LIFETIME_MS,
   });
 
   return id;

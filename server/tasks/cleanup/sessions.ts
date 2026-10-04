@@ -5,8 +5,8 @@ export default defineTask({
   meta: { name: 'cleanup:sessions', description: 'Remove expired and stale sessions' },
   async run() {
     const now = Date.now();
-    const revokedGraceCutoff = now - 7 * 24 * 60 * 60 * 1000;
-    const invalidatedGraceCutoff = now - 30 * 24 * 60 * 60 * 1000;
+    const revokedGraceCutoff = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const invalidatedGraceCutoff = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const result = await useDb()
       .delete(sessions)
@@ -14,11 +14,11 @@ export default defineTask({
         lt(sessions.expiresAt, now),
         and(
           eq(sessions.revoked, true),
-          lt(sessions.createdAt, new Date(revokedGraceCutoff).toISOString()),
+          lt(sessions.lastSeenAt, revokedGraceCutoff),
         ),
         and(
           eq(sessions.invalidated, true),
-          lt(sessions.createdAt, new Date(invalidatedGraceCutoff).toISOString()),
+          lt(sessions.lastSeenAt, invalidatedGraceCutoff),
         ),
       )).run();
 
