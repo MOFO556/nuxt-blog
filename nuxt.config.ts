@@ -12,8 +12,25 @@ export default defineNuxtConfig({
     payloadExtraction: false,
   },
   alias: {
-    "#components": fileURLToPath(new URL("../app/components", import.meta.url)),
-    "#components/*": fileURLToPath(new URL("../app/components/*", import.meta.url)),
+    "#components": fileURLToPath(new URL("./app/components", import.meta.url)),
+    "#app-utils": fileURLToPath(new URL("./app/utils", import.meta.url)),
+    "#app-types": fileURLToPath(new URL("./app/types", import.meta.url)),
+    "#server-utils": fileURLToPath(new URL("./server/utils", import.meta.url)),
+    "#server-db": fileURLToPath(new URL("./server/database", import.meta.url)),
+    "#server-composable": fileURLToPath(new URL("./server/composable", import.meta.url)),
+    "#server-config": fileURLToPath(new URL("./server/config", import.meta.url)),
+    "#test-helpers": fileURLToPath(new URL("./test/helpers", import.meta.url)),
+    "#test-fixtures": fileURLToPath(new URL("./test/fixtures", import.meta.url)),
+  },
+  typescript: {
+    tsConfig: {
+      include: [
+        "../test/unit/**/*",
+        "../test/helpers/**/*",
+        "../test/fixtures/**/*",
+        "../test/e2e/**/*",
+      ],
+    },
   },
   app: {
     head: {      
@@ -140,16 +157,16 @@ export default defineNuxtConfig({
   modules: [
     "@nuxthub/core",
     "@nuxt/ui",
-    "@nuxt/fonts",
-    "@nuxt/hints",
-    "@nuxt/image", 
-    "@nuxtjs/critters",
+    ...(process.env.VITEST || process.env.NUXT_TEST
+      ? []
+      : ["@nuxt/fonts", "@nuxt/hints", "@nuxtjs/critters", "@vite-pwa/nuxt"]),
+    "@nuxt/image",
     "@pinia/nuxt",
-    "@vite-pwa/nuxt",
     "nuxt-auth-utils",
+    "@nuxt/test-utils/module",
   ],
   pwa: {
-    disable: process.env.NODE_ENV !== "production",
+    disable: process.env.NODE_ENV !== "production" || Boolean(process.env.VITEST || process.env.NUXT_TEST),
     registerType: "autoUpdate",
     registerWebManifestInRouteRules: true,
     includeAssets: [

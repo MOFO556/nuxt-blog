@@ -15,6 +15,15 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
+ARG SKIP_TESTS=0
+RUN if [ "$SKIP_TESTS" != "1" ]; then \
+  APP_JWT_SECRET=docker-build-placeholder \
+  NUXT_SESSION_PASSWORD=docker-build-placeholder-min-32-chars!! \
+  NUXT_TEST=true \
+  VITEST=true \
+  pnpm test:ci; \
+fi
+
 ARG S3_ACCESS_KEY_ID
 ARG S3_SECRET_ACCESS_KEY
 ARG S3_BUCKET
