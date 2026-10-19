@@ -4,7 +4,7 @@ import type { WebAuthnCredential } from "#auth-utils";
 import { users } from "./users";
 
 export const credentials = sqliteTable( "Credentials", {
-    id: text("id").notNull().unique(),
+    id: text("id").primaryKey(),
     userId: integer("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),

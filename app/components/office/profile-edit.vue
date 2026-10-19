@@ -39,7 +39,7 @@
           @change="form.value.newPassword ? form.value.newPassword = '' : undefined"/>
       </UFormField>
 
-      <UButton class="mt-2 button-base-cover""
+      <UButton class="mt-2 button-base-cover"
         type="submit" 
         :loading="form.processing" 
         :disabled="!isDirty"

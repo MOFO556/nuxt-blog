@@ -1,75 +1,21 @@
-# Nuxt 3 Minimal Starter
+# MOFONuxt
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Nuxt 4 blog with SQLite (Drizzle), password + passkey auth, comments, image uploads, and an office dashboard for profile, sessions, and posts. Runs locally or with Cloudflare / Litestream-backed storage.
 
-## Setup
+## Docs
 
-Make sure to install the dependencies:
+- **Architecture** (modules, DB map, cross-service relations, review flags): [docs/architecture/](docs/architecture/)
+- **Testing**: [docs/testing.md](docs/testing.md)
+
+## Quick start
 
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
+pnpm dev          # http://localhost:3000
 ```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm run dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
+pnpm build        # production / prerender build
+pnpm test:ci      # unit + nuxt (Docker default gate)
 ```
 
-## Production
-
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm run build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.

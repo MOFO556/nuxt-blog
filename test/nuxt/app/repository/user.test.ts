@@ -25,7 +25,7 @@ describe('createUserRepository', () => {
     const repo = createUserRepository(appFetch as unknown as typeof $fetch)
     const res = await repo.login({ login: 'carol', password: 'secret12' })
 
-    expect(appFetch).toHaveBeenCalledWith('/auth/login', {
+    expect(appFetch).toHaveBeenCalledWith('auth/login', {
       method: 'POST',
       body: { login: 'carol', password: 'secret12' },
     })
@@ -65,7 +65,7 @@ describe('createUserRepository', () => {
     const repo = createUserRepository(appFetch as unknown as typeof $fetch)
     await repo.revokeSession('session-9')
 
-    expect(appFetch).toHaveBeenCalledWith('/api/auth/sessions/session-9', {
+    expect(appFetch).toHaveBeenCalledWith('auth/sessions/session-9', {
       method: 'DELETE',
     })
   })

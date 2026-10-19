@@ -15,11 +15,11 @@ const avatarSchema = z.object({
 
 export const userInsertSchema = userColumns.extend({
     avatar: avatarSchema.optional(),
-    usePasskey: z.boolean().default(false),
+    usePassKey: z.boolean().default(false),
   })
-  .superRefine(({ password, usePasskey }, ctx) => {
+  .superRefine(({ password, usePassKey }, ctx) => {
     const hasPassword = !!password;
-    if (!hasPassword && !usePasskey) {
+    if (!hasPassword && !usePassKey) {
       ctx.addIssue({
         code: "custom",
         path: ['password'],
@@ -34,9 +34,9 @@ export const userInsertSchema = userColumns.extend({
       });
     }
   })
-  .transform(({ login, password, usePasskey, avatar }): InsertUser => {
+  .transform(({ login, password, usePassKey, avatar }): InsertUser => {
     const hasPassword = !!password;
-    const authMethod = hasPassword && usePasskey
+    const authMethod = hasPassword && usePassKey
       ? 'both'
       : hasPassword
         ? 'password'
@@ -50,15 +50,17 @@ export const userInsertSchema = userColumns.extend({
     };
   });
 
-export const userPatchSchema = createUpdateSchema(users, {
-  login: z.string().min(1, 'Login is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
-
 export const userSchema = createSelectSchema(users, {  
   login: z.string().min(1, 'Login is required'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 }).pick({ login: true, password: true });
 
+export const profilePatchSchema = z.object({
+  avatar: z.number().int().positive().nullable().optional(),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  currentPassword: z.string().optional(),
+  removePassword: z.boolean().optional(),
+});
+
 export type userInput = z.infer<typeof userInsertSchema>;
-export type userPatch = z.infer<typeof userPatchSchema>;
+export type ProfilePatchInput = z.infer<typeof profilePatchSchema>;

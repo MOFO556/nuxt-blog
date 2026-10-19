@@ -8,7 +8,7 @@ export type User = {
 export type UserFormData = {
   login: string,
   password: string
-  usePasskey: boolean,
+  usePassKey: boolean,
   avatar?: File | undefined
 }
 
@@ -22,6 +22,13 @@ export type ProfileFormData = {
   newPassword: string,
   currentPassword: string,
   removePassword: boolean
+}
+
+export type ProfilePatchData = {
+  avatar?: number | null,
+  newPassword?: string,
+  currentPassword?: string,
+  removePassword?: boolean
 }
 
 export type CredentialsInfo = {

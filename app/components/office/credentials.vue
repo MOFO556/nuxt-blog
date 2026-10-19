@@ -77,7 +77,7 @@
           <span>
             {{ connection.city ? `${connection.city}, ` : '' }}{{ connection.country }}
             Linked at
-            {{ formatDate(connection.createdAt) }}
+            {{ formatDateRelative(connection.createdAt) }}
           </span>
         </div>
       </LazyUCard>

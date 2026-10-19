@@ -1,29 +1,25 @@
 import { and, eq } from 'drizzle-orm';
 import { compare, hash } from 'bcrypt';
+import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
 import { users, images, credentials, InsertUser, sessions } from '~~/server/database/schema';
-import { userSchema } from '~~/server/database/users.validators';
+import { profilePatchSchema } from '~~/server/database/users.validators';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const userId = event.context.user.id;
 
-  const body = await readBody<{
-    avatar?: number | null;
-    newPassword?: string;
-    currentPassword?: string;
-    removePassword?: boolean;
-  }>(event);
+  const body = await useSafeReadValidateBody(event, profilePatchSchema);
 
   if (body.newPassword !== undefined && body.removePassword)
     throw createError({ statusCode: 422, statusMessage: 'Conflicting password operations', data: [["newPassword", "Cannot set new password"], ["removePassword", "Unable to delete password"]] });
 
   const user = await useDb().query.users.findFirst({ where: eq(users.id, userId) });
-  if (!user) 
+  if (!user)
     throw createError({ statusCode: 401, statusMessage: 'Not authorized' });
 
-  if (body.removePassword && !user.password) 
-    throw createError({ statusCode: 422, statusMessage: 'Unable to delte password', data: [["removePassword", "Strange operation"]] });
-  
+  if (body.removePassword && !user.password)
+    throw createError({ statusCode: 422, statusMessage: 'Unable to delete password', data: [["removePassword", "Strange operation"]] });
+
   if (body.newPassword !== undefined && (!body.currentPassword && !!user.password)
     || body.removePassword && (!body.currentPassword && !!user.password)
   )
@@ -44,7 +40,7 @@ export default defineEventHandler(async (event) => {
         where: eq(images.id, body.avatar),
         columns: { id: true },
       });
-      if (!img) 
+      if (!img)
         throw createError({ statusCode: 422, statusMessage: 'Image not found' });
       updates.avatar = body.avatar;
     }
@@ -53,26 +49,12 @@ export default defineEventHandler(async (event) => {
   if (body.removePassword)
     updates.password = null;
   else if (body.newPassword !== undefined) {
-    let password: string;
-    try {
-      const{ password: newPassword } = await userSchema.parse({ password: body.newPassword, login: user.login });
-      password = newPassword;
-    } catch (error: any) {
-      const errorsObj =  error.issues.reduce(
-        (errors: [string, string][], err: any) => {
-          errors.push([err.path[0] === "password" ? "newPassword" : err.path[0], err.message]);
-          return errors;
-        }, 
-        []);
-      throw createError({ statusCode: 422, statusMessage: 'Invalid data', data: errorsObj  });
-    }
     if (body.currentPassword) {
       const ok = await compare(body.currentPassword, user.password || '');
-      if (!ok) 
-        throw createError({ statusCode: 422, statusMessage: 'Invalid data' });
+      if (!ok)
+        throw createError({ statusCode: 422, statusMessage: 'Unable to update profile', data: [["currentPassword", "Unable to update profile"]] });
     }
-    if (password){
-      updates.password = await hash(password, 12);}
+    updates.password = await hash(body.newPassword, 12);
   }
 
   const willHavePassword =
@@ -102,7 +84,7 @@ export default defineEventHandler(async (event) => {
           eq(sessions.loginMethod, 'password'),
           eq(sessions.invalidated, false),
         )).run();
-  })
+  });
 
   return { ok: true };
 });

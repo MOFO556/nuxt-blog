@@ -24,7 +24,7 @@
       <lazy-images-description v-if="item?.description"
         class="w-full mt-2"
         v-model="item.description"
-        :canEdit="false" />        
+        :canEdit="canEdit" />        
     </div>
   </LazyUCarousel>
 </template>

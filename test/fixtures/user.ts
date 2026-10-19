@@ -3,12 +3,12 @@ import { faker } from '@faker-js/faker'
 export function buildRegisterPayload(overrides: {
   login?: string
   password?: string
-  usePasskey?: boolean
+  usePassKey?: boolean
 } = {}) {
   return {
     login: overrides.login ?? faker.internet.username({ firstName: 'user' }).slice(0, 20).padEnd(5, 'x'),
     password: overrides.password ?? 'secret12',
-    usePasskey: overrides.usePasskey ?? false,
+    usePassKey: overrides.usePassKey ?? false,
   }
 }
 

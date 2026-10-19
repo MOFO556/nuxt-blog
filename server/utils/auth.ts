@@ -1,5 +1,5 @@
 import { eq, sql, SQL } from 'drizzle-orm';
-import jwt, { JwtPayload } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 import { H3Event } from "h3";
 import { AUTH_JWT_ALG, AUTH_JWT_SECRET } from '../config/auth';
 import { publicUserColumns, User, users } from '../database/schema/auth/users';
@@ -84,23 +84,6 @@ export async function loadSession(event: H3Event) {
   return userData;
 }
 
-export async function checkAuth(
-    event: H3Event
-  ): Promise<{ auth: boolean, user?: {[K in keyof typeof publicUserColumns]: User[K]} & { avatar?: string } }> {
-	const header = getHeader(event, 'Authorization') ?? '';
-	const [ _, token ] = header.split(' ');
-
-  const tokenData = !token ? false : verifyToken(token);
-  if (!tokenData)
-    return {
-      auth: false
-    }
-  else {    
-    const user = await getUserByToken(tokenData);
-    return { auth: true, user: user};
-  }
-}
-
 export async function getUserByFilter(
     filter: SQL
   ): Promise<{[K in keyof typeof publicUserColumns]: User[K]} & { avatar?: string } | undefined> {
@@ -123,12 +106,6 @@ function verifyToken(token: string): { id: number; sid: string } | null {
   catch {
     return null;
   }
-}
-
-async function getUserByToken(
-    token: JwtPayload
-  ): Promise<{[K in keyof typeof publicUserColumns]: User[K]} & { avatar?: string } | undefined> {
-  return await getUserByFilter(eq(users.id, token.id));
 }
 
 export function signToken(userId: number, sessionId: string): string {

@@ -40,7 +40,7 @@
     {
       login: '',
       password: '',
-      usePasskey: false,
+      usePassKey: false,
       avatar: undefined
     },
     undefined,
@@ -53,7 +53,7 @@
   <UForm :state="form.value"
     :schema="schema"
     @submit.prevent="form.submit(
-      form.value.usePasskey 
+      form.value.usePassKey 
         ? $api.auth.registerPassKey
         : $api.auth.register, 
       { 
@@ -72,7 +72,7 @@
         v-model="form.value.login" 
         type="text"
         placeholder="Enter login"
-        icon="i-heroicons-user"/>
+        icon="i-lucide-user"/>
     </UFormField >
 
     <UFormField class="w-full relative pb-2"
@@ -84,7 +84,7 @@
         v-model="form.value.password" 
         type="password"
         placeholder="••••••••"
-        icon="i-heroicons-lock-closed"/>
+        icon="i-lucide-lock"/>
     </UFormField >
 
     <UFormField class="w-full relative pb-2"
@@ -94,7 +94,7 @@
       :ui="{ error: 'absolute left-0 top-full mt-1 text-xs' }"
       :error="form.errors.usePasskey">
       <UCheckbox class="w-full"
-        v-model="form.value.usePasskey" />
+        v-model="form.value.usePassKey" />
     </UFormField >
 
     <UFormField class="w-full relative pb-4 mb-2"

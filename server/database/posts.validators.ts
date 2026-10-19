@@ -36,7 +36,5 @@ export const postPatchSchema = createUpdateSchema(posts, {
     tags: z.array(tagInput).max(10).optional(),
   });
 
-export const postSchema = createSelectSchema(posts);
-
 export type postInput = z.infer<typeof postInsertSchema>;
 export type postPatch = z.infer<typeof postPatchSchema>;

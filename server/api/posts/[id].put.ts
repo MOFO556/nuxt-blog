@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
 import { postAttachments, posts, postTags, tags } from '~~/server/database/schema';
 import { postPatchSchema } from '~~/server/database/posts.validators';
-import { slugify } from '~~/server/utils/slugify';
+import { slugify } from '~~/shared/utils/slugify';
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() });
 

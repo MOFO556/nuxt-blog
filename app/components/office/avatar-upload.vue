@@ -12,23 +12,19 @@
   function onChange(e: Event) {
     const input = e.target as HTMLInputElement
     const file = input.files?.[0]
-    if (file) form.value.avatar = file
+    if (file) 
+      form.value.avatar = file
     input.value = ''
   };
 
-  const provider = computed(() =>
-    isDefaultPicture
-      ? 'none'
-      : 'nuxtHubBlobIpx',
-  );
 </script>
 
 <template>
   <div class="relative shrink-0">
-    <LazyUAvatar :src="previewUrl"
-      :provider="provider"
-      :ui="{ root: 'size-40 md:size-75' }"
-      alt="avatar"/>
+    <LazyUAvatar provider="none"
+      alt="avatar"
+      :src="previewUrl"
+      :ui="{ root: 'size-40 md:size-75' }"/>
     
     <UButton v-if="editable"
       class="absolute bottom-5 right-5 rounded-full"
@@ -39,11 +35,10 @@
       aria-label="Upload new avatar"
       @click="pick"/>
 
-    <LazyUTooltip v-if="isDefaultPicture && !hasNewAvatar" class="absolute top-3 right-5 cursor-help" text="No avatar loaded">
-      <LazyUBadge class="rounded-full" color="primary" variant="soft" icon="i-lucide-asterisk" size="lg"/>
-    </LazyUTooltip>
-    <LazyUTooltip v-if="hasNewAvatar" class="absolute top-3 right-5 cursor-help" text="Avatar unsaved">
-      <LazyUBadge class="rounded-full" color="warning" variant="soft" icon="i-lucide-asterisk" size="lg"/>
+    <LazyUTooltip v-if="isDefaultPicture || hasNewAvatar" class="absolute top-3 right-5 cursor-help" 
+      :text="isDefaultPicture ? 'No avatar loaded' : 'Avatar unsaved'">
+      <UBadge class="rounded-full" variant="soft" icon="i-lucide-asterisk" size="lg"
+        :color="hasNewAvatar ? 'warning' : 'primary'"/>
     </LazyUTooltip>
 
     <input ref="fileInput"

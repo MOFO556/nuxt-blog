@@ -37,7 +37,7 @@ describe('auth API', async () => {
     try {
       await $fetch('/api/auth/register', {
         method: 'POST',
-        body: { login: 'ab', password: '1', usePasskey: false },
+        body: { login: 'ab', password: '1', usePassKey: false },
       })
       expect.unreachable('should throw')
     }

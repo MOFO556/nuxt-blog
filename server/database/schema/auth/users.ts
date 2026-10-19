@@ -9,7 +9,7 @@ export const users = sqliteTable("User", {
     createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
     updatedAt: text('updated_at'),
     authMethod: text("auth_method", { enum: ["password", "passkey", "both"] }).notNull(),
-    avatar: integer("avatar").references(() => images.id, { onDelete: "cascade" })
+    avatar: integer("avatar").references(() => images.id, { onDelete: "set null" })
   },
   () => [
     check("user_auth_method", sql`auth_method IN ('password','passkey','both')`),

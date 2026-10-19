@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { users } from './users';
+import { credentials } from './credentials';
 
 export const sessions = sqliteTable('Session', {
   id: text('id').primaryKey(),
@@ -8,7 +9,7 @@ export const sessions = sqliteTable('Session', {
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
   loginMethod: text('login_method', { enum: ["password", "passkey"] }).notNull(),
-  credentialId: text('credential_id'),
+  credentialId: text('credential_id').references(() => credentials.id, { onDelete: 'set null' }),
   passwordSnapshot: text('password_snapshot'),
   ip: text('ip'),
   city: text('city'),

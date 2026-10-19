@@ -3,7 +3,7 @@ import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidat
 import { postInsertSchema } from '~~/server/database/posts.validators';
 import { requireAuth } from '~~/server/utils/auth';
 import { inArray } from 'drizzle-orm';
-import { slugify } from '~~/server/utils/slugify';
+import { slugify } from '~~/shared/utils/slugify';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);

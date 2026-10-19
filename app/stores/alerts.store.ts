@@ -1,4 +1,6 @@
+//TODO: Either use or delete. Keep it for now, but consider the removing
 import { defineStore } from "pinia";
+import type { Alert } from "~/types/core";
 
 export const useAlertsStore = defineStore('AlertsStore', {
   state: (): { alerts: Alert[] } => ({

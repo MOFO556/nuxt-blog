@@ -1,6 +1,7 @@
 import { hash } from "bcrypt";
+import { eq } from "drizzle-orm";
 import { useSafeReadValidateBody } from "~~/server/composable/useSafeReadValidateBody";
-import { User, users } from "~~/server/database/schema";
+import { images, User, users } from "~~/server/database/schema";
 import { userInsertSchema } from "~~/server/database/users.validators";
 import { createSession } from "~~/server/utils/session";
 
@@ -27,14 +28,22 @@ export default defineEventHandler(async event => {
       ["password", "Unable to create user"]
     ]});
 
+  let avatar: string | undefined;
+  if (user.avatar)
+    avatar = useDb().select().from(images).where(eq(images.id, user.avatar)).get()?.path;
+
   if (input.authMethod === 'password') {
     const sessionId = await createSession(event, {
       userId: user.id,
       loginMethod: 'password',
       passwordSnapshot: user.password,
     });
-    return { user: user, token: signToken(user.id, sessionId), passkey: null };
+    return {
+      user: { id: user.id, login: user.login, avatar },
+      token: signToken(user.id, sessionId),
+      passkey: null,
+    };
   }
 
-    return user;
+  return { id: user.id, login: user.login, avatar };
 })

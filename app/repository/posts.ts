@@ -32,6 +32,11 @@ export function createPostsRepository(appFetch: typeof $fetch) {
         method: 'PUT',
         body: payload
       })      
-    }
+    },
+    async remove(id: number | string) {
+      return appFetch<Post>(`posts/${id}`, {
+        method: 'DELETE',
+      })
+    },
   }
 }

@@ -150,7 +150,7 @@ export default defineNuxtConfig({
       failOnError: false,
     },
     scheduledTasks: {
-      "*/10 * * * *": ["posts:enrich", "cleanup:orphan-images", "cleanup:webauthn-attempts", "cleanup:sessions"],
+      "*/10 * * * *": ["cleanup:orphan-images", "cleanup:webauthn-attempts", "cleanup:sessions"],
       "0 4 * * *": ["cleanup:tags"],
     }
   },
@@ -159,7 +159,7 @@ export default defineNuxtConfig({
     "@nuxt/ui",
     ...(process.env.VITEST || process.env.NUXT_TEST
       ? []
-      : ["@nuxt/fonts", "@nuxt/hints", "@nuxtjs/critters", "@vite-pwa/nuxt"]),
+      : ["@nuxt/hints", "@nuxtjs/critters", "@vite-pwa/nuxt"]),
     "@nuxt/image",
     "@pinia/nuxt",
     "nuxt-auth-utils",
@@ -266,6 +266,7 @@ export default defineNuxtConfig({
     experimental: {
       componentDetection: true,
     },
+    fonts: false
   },
   vite: {
     server: {

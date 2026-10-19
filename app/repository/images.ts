@@ -1,6 +1,5 @@
 import type { ItemUploadMeta } from "~/types/core";
-import type { UploadPayload } from "~/types/forms";
-import type { PostImageMeta } from "~/types/posts";
+import type { UploadMethodResultItem, UploadPayload } from "~/types/forms";
 
 export function createImagesRepository(appFetch: typeof $fetch) {
   const toArray = (p: UploadPayload): Partial<ItemUploadMeta>[] =>
@@ -39,13 +38,10 @@ export function createImagesRepository(appFetch: typeof $fetch) {
         body: fd,
       });
     },
-    async getToPost(postId: number) {
-      return appFetch<PostImageMeta[]>(`/api/images/posts/${postId}`);
-    },
     async uploadAvatar(payload: File) {
       const fd = new FormData();
       fd.append('file', payload)
-      return appFetch<PostImageMeta>(`/api/images/avatar/`,{
+      return appFetch<UploadMethodResultItem>(`images/avatar`, {
         method: "POST",
         body: fd,
       });

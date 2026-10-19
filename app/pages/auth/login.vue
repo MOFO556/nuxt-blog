@@ -60,7 +60,7 @@
         v-model="form.value.login" 
         type="text"
         placeholder="Enter login"
-        icon="i-heroicons-user"/>
+        icon="i-lucide-user"/>
     </UFormField >
 
     <UFormField class="w-full relative pb-2"
@@ -73,7 +73,7 @@
         :disabled="form.value.usePasskey"
         type="password"
         placeholder="••••••••"
-        icon="i-heroicons-lock-closed"/>
+        icon="i-lucide-lock"/>
     </UFormField >
 
     <USwitch v-model="form.value.usePasskey"

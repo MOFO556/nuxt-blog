@@ -4,9 +4,7 @@
   const { user, loggedIn } = useUserStore();
   const route = useRoute();
   const router = useRouter();
-
-  const profileEdit = useProfileEditForm();
-  provide(PROFILE_EDIT_KEY, profileEdit);
+  useProfileEditForm();
 
   const tabs = ref<TabsItem[]>([
     { label: 'Update profile data', value: 'profile-edit', slot: 'profile' as const },

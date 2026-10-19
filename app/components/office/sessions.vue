@@ -82,7 +82,7 @@
             <span>
               {{ session.current
                 ? 'Active now'
-                : `Last seen ${formatDate(session.lastSeenAt)}` }}
+                : `Last seen ${formatDateRelative(session.lastSeenAt)}` }}
             </span>
           </div>
 

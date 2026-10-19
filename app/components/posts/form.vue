@@ -2,6 +2,7 @@
   import { z } from 'zod';
   import type { UploadMethodResultItem } from '~/types/forms';
   import type { Post, PostImageMeta, PostItemUploadMeta, Tag } from '~/types/posts';
+  import { slugify } from '~~/shared/utils/slugify';
 
   const { title = '', content = '', url = '', images, tags = [], id } = defineProps<{
         url?: string,
@@ -30,9 +31,6 @@
   });
 
   const allTags = ref<Tag[]>((fetchedTags.value ?? []));
-
-  const slugify = (s: string) =>
-    s.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
 
   const onModalToOpen = (file: File & { description?: string }, path: string) => {
     imagePreviewModal.open = true;
@@ -153,7 +151,7 @@
         id ? $api.posts.edit : $api.posts.add,
         { 
           uploadMethod: { images: $api.images.uploadToPost },          
-          onUploadSucseed: (e) => updatePathsOnUpload(e)
+          onUploadSucceed: (e) => updatePathsOnUpload(e)
         }
       )"
     class="max-w-md mx-auto p-6 space-y-4">

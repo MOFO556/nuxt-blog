@@ -13,7 +13,7 @@ mockNuxtImport('navigateTo', () => navigateTo)
 
 type SetupState = {
   form: {
-    value: { login: string, password: string, usePasskey: boolean }
+    value: { login: string, password: string, usePassKey: boolean }
     submit: (method: (payload: unknown) => Promise<unknown>) => Promise<void>
   }
 }
@@ -44,7 +44,7 @@ describe('Login page', () => {
     const { form } = setupStateOf(wrapper)
     form.value.login = 'alice1'
     form.value.password = 'secret12'
-    form.value.usePasskey = false
+    form.value.usePassKey = false
 
     await form.submit(loginFn)
 

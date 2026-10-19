@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { commentInsertSchema } from '#server-db/comments.validators'
 import { postInsertSchema } from '#server-db/posts.validators'
-import { userInsertSchema, userSchema } from '#server-db/users.validators'
+import { profilePatchSchema, userInsertSchema, userSchema } from '#server-db/users.validators'
 
 describe('userInsertSchema', () => {
   it('accepts password registration and sets authMethod', () => {
     const result = userInsertSchema.safeParse({
       login: 'alice1',
       password: 'secret12',
-      usePasskey: false,
+      usePassKey: false,
     })
     expect(result.success).toBe(true)
     if (result.success) {
@@ -21,7 +21,7 @@ describe('userInsertSchema', () => {
     const result = userInsertSchema.safeParse({
       login: 'alice1',
       password: '123',
-      usePasskey: false,
+      usePassKey: false,
     })
     expect(result.success).toBe(false)
   })
@@ -29,7 +29,7 @@ describe('userInsertSchema', () => {
   it('rejects missing password and passkey', () => {
     const result = userInsertSchema.safeParse({
       login: 'alice1',
-      usePasskey: false,
+      usePassKey: false,
     })
     expect(result.success).toBe(false)
   })
@@ -39,6 +39,20 @@ describe('userSchema (login)', () => {
   it('requires login and password of at least 6 chars', () => {
     expect(userSchema.safeParse({ login: 'bob', password: '12345' }).success).toBe(false)
     expect(userSchema.safeParse({ login: 'bob', password: '123456' }).success).toBe(true)
+  })
+})
+
+describe('profilePatchSchema', () => {
+  it('accepts avatar and password fields', () => {
+    expect(profilePatchSchema.safeParse({
+      avatar: 3,
+      newPassword: 'secret12',
+      currentPassword: 'oldpass1',
+    }).success).toBe(true)
+  })
+
+  it('rejects short newPassword', () => {
+    expect(profilePatchSchema.safeParse({ newPassword: '123' }).success).toBe(false)
   })
 })
 

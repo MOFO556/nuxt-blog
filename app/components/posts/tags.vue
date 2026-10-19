@@ -1,6 +1,4 @@
 <script setup lang="ts">
-  // import type { Tag } from '~/types/posts';
-
   const props = defineProps<{ tags: any[]; inline?: number }>();
   const inline = computed(() => props.inline ?? 2);
   const visible = computed(() => props.tags.slice(0, inline.value));

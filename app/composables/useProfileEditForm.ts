@@ -1,8 +1,8 @@
 import type { InjectionKey } from 'vue';
-import type { ProfileFormData } from '~/types/user';
+import type { ProfileFormData, ProfilePatchData } from '~/types/user';
 
-export type ProfileEditContext = ReturnType<typeof useProfileEditForm>;
-export const PROFILE_EDIT_KEY: InjectionKey<ProfileEditContext> =
+type ProfileEditContext = ReturnType<typeof useProfileEditForm>;
+const PROFILE_EDIT_KEY: InjectionKey<ProfileEditContext> =
   Symbol('profileEdit');
 
 export function useProfileEditForm() {
@@ -31,16 +31,17 @@ export function useProfileEditForm() {
   watch(
     () => form.value.avatar,
     (val) => {
-      if (val instanceof File) {
-        if (objectUrl.value) 
-          URL.revokeObjectURL(objectUrl.value);
-        objectUrl.value = URL.createObjectURL(val);
+      if (objectUrl.value) {
+        URL.revokeObjectURL(objectUrl.value);
+        objectUrl.value = null;
       }
+      if (val instanceof File)
+        objectUrl.value = URL.createObjectURL(val);
     },
   )
 
   onBeforeUnmount(() => {
-    if (objectUrl.value) 
+    if (objectUrl.value)
       URL.revokeObjectURL(objectUrl.value)
   })
 
@@ -62,27 +63,29 @@ export function useProfileEditForm() {
   );
 
   const submit = () => {
-    if (!isDirty.value || form.processing) 
+    if (!isDirty.value || form.processing)
       return;
 
     form.submit(
-      (payload: any) => {
-        const body: ProfileFormData = {} as ProfileFormData;
+      (payload) => {
+        const body: ProfilePatchData = {};
+        const avatar = payload.avatar;
         if (
-          payload.avatar &&
-          typeof payload.avatar === 'object' &&
-          'fileId' in payload.avatar
+          avatar !== null 
+          && typeof avatar === 'object' 
+          && 'fileId' in avatar 
+          && typeof avatar.fileId === 'number'
         ) {
-          body.avatar = payload.avatar.fileId
+          body.avatar = avatar.fileId;
         }
-        if (payload.newPassword) 
+        if (payload.newPassword)
           body.newPassword = payload.newPassword;
-        if (payload.currentPassword) 
+        if (payload.currentPassword)
           body.currentPassword = payload.currentPassword;
-        if (payload.removePassword) 
+        if (payload.removePassword)
           body.removePassword = true;
 
-        return $api.auth.updateProfile(body)
+        return $api.auth.updateProfile(body);
       },
       {
         uploadMethod: {
@@ -99,7 +102,7 @@ export function useProfileEditForm() {
 
 export function useProfileEdit(): ProfileEditContext {
   const ctx = inject(PROFILE_EDIT_KEY);
-  if (!ctx) 
+  if (!ctx)
     throw new Error('useProfileEdit: missing provider');
   return ctx;
 }
