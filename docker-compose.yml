@@ -1,9 +1,9 @@
 # Profiles:
-#   seed      — copy local .data/db/stash.db into the named volume
-#   litestream — replicate volume DB to R2
-#   wipe      — delete DB inside the volume (to practice restore)
-#   restore   — restore DB from R2 into the volume
-#   app       — build & run Nuxt + Litestream
+# seed - copy local .data/db/stash.db into the named volume
+# litestream - replicate volume DB to R2
+# wipe - delete DB inside the volume (to practice restore)
+# restore - restore DB from R2 into the volume
+# app - build & run Nuxt + Litestream
 
 services:
   seed-db:

@@ -63,4 +63,100 @@ describe('posts API', async () => {
 
     expect(listed.data.some(p => p.id === created.id)).toBe(true)
   })
+
+  it('creates a formatted Post with sanitized HTML and excerpt', async () => {
+    const { token } = await registerAndToken()
+    const content = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello formatted' }] }],
+    })
+    const created = await $fetch<{
+      id: number
+      mode: string
+      contentHtml: string | null
+      excerpt: string | null
+    }>(
+      '/api/posts',
+      {
+        method: 'POST',
+        body: {
+          title: 'Formatted post title',
+          mode: 'formatted',
+          content,
+          contentHtml: '<p onclick="alert(1)">Hello formatted</p><script>bad()</script>',
+          description: '',
+        },
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    )
+
+    expect(created.mode).toBe('formatted')
+    expect(created.contentHtml).toBe('<p>Hello formatted</p>')
+    expect(created.excerpt).toBe('Hello formatted')
+
+    const fetched = await $fetch<{ mode: string, contentHtml: string | null }>(
+      `/api/posts/${created.id}`,
+    )
+    expect(fetched.mode).toBe('formatted')
+    expect(fetched.contentHtml).toBe('<p>Hello formatted</p>')
+  })
+
+  it('keeps mode immutable when editing a Post', async () => {
+    const { token } = await registerAndToken()
+    const created = await $fetch<{ id: number }>(
+      '/api/posts',
+      {
+        method: 'POST',
+        body: buildPostPayload({
+          title: 'Legacy locked mode',
+          content: 'y'.repeat(40),
+        }),
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    )
+
+    const updated = await $fetch<{ mode: string }>(
+      `/api/posts/${created.id}`,
+      {
+        method: 'PUT',
+        body: {
+          title: 'Legacy locked mode edit',
+          content: 'z'.repeat(40),
+          mode: 'formatted',
+          contentHtml: '<p>should not switch</p>',
+        },
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    )
+
+    expect(updated.mode).toBe('legacy')
+  })
+
+  it('lists formatted Posts using description and finds them via q on excerpt fields', async () => {
+    const { token } = await registerAndToken()
+    const unique = `zebra-${randomUUID().slice(0, 8)}`
+    const created = await $fetch<{ id: number }>(
+      '/api/posts',
+      {
+        method: 'POST',
+        body: {
+          title: 'Searchable formatted title',
+          mode: 'formatted',
+          content: JSON.stringify({ type: 'doc', content: [] }),
+          contentHtml: `<p>Body without the needle</p>`,
+          description: unique,
+        },
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    )
+
+    const listed = await $fetch<{
+      data: Array<{ id: number, description: string | null, excerpt: string | null }>
+    }>('/api/posts', { query: { q: unique } })
+
+    const hit = listed.data.find(p => p.id === created.id)
+    expect(hit).toBeTruthy()
+    expect(hit?.description).toBe(unique)
+    expect(hit?.excerpt).toBe(unique)
+  })
 })

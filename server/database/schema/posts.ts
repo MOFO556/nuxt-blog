@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { PostMode } from "~~/shared/types/posts";
 import { users } from "./auth/users";
 
 export const posts = sqliteTable("Post", {
@@ -7,6 +8,10 @@ export const posts = sqliteTable("Post", {
   url: text("url", { length: 255 }),
   title: text("title").notNull(),
   content: text("content").notNull(),
+  mode: text("mode", { enum: [PostMode.Legacy, PostMode.Formatted] }).default(PostMode.Legacy).$type<PostMode>().notNull(),
+  contentHtml: text("content_html"),
+  description: text("description"),
+  excerpt: text("excerpt"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: text("updated_at"),
 	userId: integer().references(() => users.id, { onDelete: "cascade" }).notNull(),

@@ -1,160 +1,58 @@
 <script setup lang="ts">
-  import { z } from 'zod';
-  import type { UploadMethodResultItem } from '~/types/forms';
-  import type { Post, PostImageMeta, PostItemUploadMeta, Tag } from '~/types/posts';
-  import { slugify } from '~~/shared/utils/slugify';
+  import type { PostImageMeta, Tag } from '~/types/posts';
+  import type { PostMode } from '~~/shared/types/posts';
 
-  const { title = '', content = '', url = '', images, tags = [], id } = defineProps<{
-        url?: string,
-        title?: string,
-        content?: string,
-        images?: PostImageMeta[],
-        id?: number
-        tags?: Tag[]
-      }>();
-  const { $api } = useNuxtApp();
-  const coverIndex = ref<number | null>(null);
-  const imagePreviewModal = reactive<{
-        open: boolean;
-        picture?: string;
-        description?: string;
-        file?: File & { description?: string }
-    }>({
-      open: false,
-      picture: undefined,
-      description: undefined,
-      file: undefined
-    });
+  const props = defineProps<{
+    url?: string,
+    title?: string,
+    content?: string,
+    contentHtml?: string | null,
+    description?: string | null,
+    mode?: PostMode,
+    images?: PostImageMeta[],
+    id?: number,
+    tags?: Tag[],
+  }>();
 
-  const { data: fetchedTags } = await useAsyncData(`all-tags-on-post-${id}-edit`, $api.tags.all, {
-    default: () => [] as { name: string; slug: string }[],
-  });
-
-  const allTags = ref<Tag[]>((fetchedTags.value ?? []));
-
-  const onModalToOpen = (file: File & { description?: string }, path: string) => {
-    imagePreviewModal.open = true;
-    imagePreviewModal.picture = path;
-    imagePreviewModal.file = file;
-    imagePreviewModal.description = file.description;
-  }
-
-  const onModalClose = () => {
-    if (!!imagePreviewModal.file)
-      imagePreviewModal.file.description = imagePreviewModal.description;
-    imagePreviewModal.description = undefined;
-    imagePreviewModal.picture = undefined;
-    imagePreviewModal.file = undefined;
-  }
-      
-  const schema = z.object({
-    title: z.string().min(1, 'Title is required'),
-    content: z.string().min(1, 'Content is required'),
-    url: z.string().min(1, 'URL is required'),
-    images: z.array(z.instanceof(Object)).optional()
-  });
-
-  const form = useForm(
-    {
-      title: title,
-      content: content,
-      url: url,
-      images: [] as File[],
-      tags: tags,
-      ...(id ? { id }: {})
-    },
-    "id",
-    async (res: Post) => {
-      if (id) {
-        await refreshNuxtData(`office-post-${id}`);
-        return;
-      }
-      if (res?.id)
-        await navigateTo(`/office/posts/${res.id}`);
-    },
-    schema
-  );
-
-  function imageDblClick(event: MouseEvent, file: File) {
-    preventBubbling(event);
-  const currentObjectUrl = URL.createObjectURL(file);
-    onModalToOpen(file, currentObjectUrl);
-  }
-
-  function setCover(index: number, checked: boolean| "indeterminate", item: File & { postCover?: boolean }) {
-    if (checked)
-      coverIndex.value = index;
-    else if (coverIndex.value === index)
-      coverIndex.value = null;
-  }
-
-  function removeFileAt(index: number, removeFile: (i: number) => void) {
-    removeFile(index);
-    if (coverIndex.value === null) 
-      return;
-    if (coverIndex.value === index) 
-      coverIndex.value = null;
-    else if (coverIndex.value > index) 
-      coverIndex.value--;
-  }
-
-  function setSelectedCover() {
-    if (form.value.images === null
-      || coverIndex.value === null)
-      return;
-    else
-      form.value.images?.map((img: File & { postCover?: boolean }, index: number) => {
-        img.postCover = index === coverIndex.value;
-        return img;
-      })
-  }
-
-  async function loadExistingFiles(urls: PostImageMeta[]) {
-    const files = await Promise.all(
-      urls.map(async (u) => {
-        const url = typeof u === 'string' ? u : u.path;
-        const postCover = typeof u === 'string' ? false : !!u.postCover;
-
-        const file = await urlToFile(url);
-        (file as any).existingPath = url;
-        (file as any).originalName = u.name;
-        (file as any).description = u.description;
-        (file as any).postCover = postCover;
-        return <PostItemUploadMeta>file;
-      })
-    );
-
-    form.value.images = files;
-
-    const coverIdx = files.findIndex((f: PostItemUploadMeta) => f.postCover);
-    coverIndex.value = coverIdx >= 0 ? coverIdx : null;
-  }
-
-  onMounted(() => {
-    if (images?.length) 
-      loadExistingFiles(images);
-  });
-
-  function updatePathsOnUpload(paths: Record<string, UploadMethodResultItem[]>) {
-    Object.keys(paths)
-      .forEach(async formKey => {
-        if (paths[formKey])
-          await loadExistingFiles(paths[formKey]);
-      })
-  }
+  const {
+    form,
+    id,
+    modeLocked,
+    modeItems,
+    isFormatted,
+    coverModel,
+    coverIndex,
+    editorRef,
+    imagePreviewModal,
+    allTags,
+    onModalClose,
+    imageDblClick,
+    setCover,
+    removeFileAt,
+    onInsertImageRequest,
+    onInsertCarouselRequest,
+    submitForm,
+    onCreateTag,
+  } = await usePostForm(props);
 </script>
 
 <template>  
-  <UForm :state="form.value"
-    :schema="schema"
-    @submit.prevent="setSelectedCover(); form.submit(
-        id ? $api.posts.edit : $api.posts.add,
-        { 
-          uploadMethod: { images: $api.images.uploadToPost },          
-          onUploadSucceed: (e) => updatePathsOnUpload(e)
-        }
-      )"
-    class="max-w-md mx-auto p-6 space-y-4">
+  <UForm class="max-w-xl mx-auto p-6 space-y-4"
+    :state="form.value"
+    @submit.prevent="submitForm">
+    <UFormField
+      v-if="!modeLocked"
+      class="w-full relative pb-2"
+      label="Mode"
+      name="mode">
+      <URadioGroup class="mode-toggle" 
+        v-model="form.value.mode"
+        :items="modeItems"
+        value-key="value"
+        label-key="label"
+        orientation="horizontal"/>
+    </UFormField>
+
     <UFormField  class="w-full relative pb-2"
       label="Title" 
       name="title"
@@ -166,12 +64,29 @@
         placeholder="Enter title"/>
     </UFormField >
 
+    <UFormField
+      class="w-full relative pb-2"
+      label="Description"
+      name="description">
+      <UInput
+        class="w-full"
+        v-model="form.value.description"
+        type="text"
+        placeholder="Optional list preview"/>
+    </UFormField>
+
     <UFormField class="w-full relative pb-2"
       label="Content" 
       name="content"
       :ui="{ error: 'absolute left-0 top-full mt-1 text-xs' }"
       :error="form.errors.content">
-      <UTextarea class="w-full"
+      <posts-editor v-if="isFormatted"
+        ref="editorRef"
+        v-model:content="form.value.content"
+        v-model:content-html="form.value.contentHtml"
+        @insert-image-request="onInsertImageRequest"
+        @insert-carousel-request="onInsertCarouselRequest"/>
+      <UTextarea v-else class="w-full legacy-content"
         v-model="form.value.content" 
         type="text"
         placeholder="Enter content"
@@ -201,17 +116,24 @@
         :items="allTags"
         label-key="name"
         create-item
-        @create="(query: string) => {
-          const name = query.trim();
-          allTags.push({ name, slug: slugify(name) })
-          form.value.tags.push({ name, slug: slugify(name) });
-        }"
+        @create="onCreateTag"
         multiple
         searchable
         placeholder="Pick or type new tags"/>
     </UFormField>
 
-    <UFormField class="w-full relative pb-2"
+    <UFormField v-if="isFormatted" class="w-full relative pb-2"
+      label="Cover"
+      name="cover">
+      <UFileUpload class="w-full"
+        v-model="coverModel"
+        accept="image/jpeg, image/png, image/webp"
+        placeholder="Select cover image"/>
+    </UFormField>
+
+    <UFormField
+      v-else
+      class="w-full relative pb-2"
       label="Images" 
       name="images"
       :ui="{ error: 'absolute left-0 top-full mt-1 text-xs' }"
@@ -235,17 +157,15 @@
               <UCheckbox :id="`pick-cover-${index}`"
                 label="Cover"
                 :model-value="coverIndex === index"
-                @update:model-value="(checked: boolean| 'indeterminate') => setCover(index, checked, item)"
+                @update:model-value="(checked: boolean | 'indeterminate') => setCover(index, checked)"
                 @click.stop.prevent
                 @mousedown.stop
-                @pointerdown.stop
-              />
+                @pointerdown.stop/>
               <UButton
                 icon="i-lucide-trash"
                 @click.stop.prevent="removeFileAt(index, removeFile)"
                 @mousedown.stop
-                @pointerdown.stop
-              />
+                @pointerdown.stop/>
             </div>
           </div>
         </template>                
@@ -256,7 +176,6 @@
             body: 'px-2 pt-0 pb-4 sm:px-4 sm:pt-0 sm:pb-4',
             close: 'top-2 end-2'
           }"
-          
           @after:leave="onModalClose">
         <template #body>
           <images-view :imgSrc="imagePreviewModal.picture"
@@ -269,16 +188,17 @@
 
     </UFormField>
 
-    <UButton type="submit" 
-      :loading="form.processing"
-      block>{{id ? 'Edit' : 'Create'}}</UButton>
+    <UButton type="submit" block
+      :loading="form.processing">
+      {{ id ? 'Edit' : 'Create' }}
+    </UButton>
   </UForm>
 </template>
 
 <style scoped>
-.error {
-  display: block;
-  color: red;
-  margin: 5px 0;
-}
+  .error {
+    display: block;
+    color: red;
+    margin: 5px 0;
+  }
 </style>

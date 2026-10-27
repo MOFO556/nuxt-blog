@@ -22,4 +22,4 @@ export interface Pagination<T>{
 }
 
 export type ItemUploadMeta = File & { fileId?: number; existingPath?: string; description?: string };
-export type ImageMeta = { name: string, path: string, description?: string };
+export type ImageMeta = { id?: number, name?: string, path: string, description?: string };

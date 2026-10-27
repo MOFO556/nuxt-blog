@@ -20,19 +20,19 @@ Feature modules and shared seams. Paths are from the repo root.
 
 ## Posts
 
-**Purpose:** Public list/detail/filters; create/edit/delete for owners; “my posts” in office.
+**Purpose:** Public list/detail/filters; create/edit/delete for owners; “my posts” in office. Posts are **legacy** (plain text + bottom carousel) or **formatted** (TipTap JSON + sanitized HTML, inline images/carousels, separate cover).
 
 | Layer | Key paths |
 |-------|-----------|
 | Pages | `app/pages/posts/index.vue`, `[id].vue`, `tag/[slug].vue`, `author/[login].vue`; office `app/pages/office/posts/**` |
-| Components | `app/components/posts/*` (list, detail, form, filters, tags, navigation, attachments) |
+| Components | `app/components/posts/*` (list, detail, form, editor, formatted-body, filters, tags, navigation, attachments); office list `app/components/office/posts.vue` (edit/delete actions) |
 | Repository | `app/repository/posts.ts` → `$api.posts` |
 | Store | `app/stores/posts.store.ts` (list cache + next/prev ids) |
 | Composables | `useUserPostFetch` (owner middleware / office detail) |
 | Middleware | `app/middleware/post-owner.ts` |
 | API | `server/api/posts/*` |
 | Schema / validators | `Post`, `PostAttachment`, `PostTag`; `posts.validators.ts` |
-| Utils | `shared/utils/slugify.ts` |
+| Utils | `shared/utils/slugify.ts`, `sanitizePostHtml.ts`, `buildPostExcerpt.ts`, `rewriteContentImageIds.ts`, `parseFormattedBody.ts`, `collectContentImageIds.ts` |
 
 Filtered entry points: `/posts/tag/:slug`, `/posts/author/:login` (also prerendered from DB in `nuxt.config.ts`).
 
@@ -116,7 +116,7 @@ API currently allows only `item === 'post'` even though the schema supports comm
 | Forms | `app/composables/useForm.ts` | Shared form submit/error wiring |
 | Async data | `useAsyncDataCatch.ts` | Error-tolerant `useAsyncData` wrapper |
 | Auth init | `useEnsureAuthChecked.ts` | Deduped `$api.auth.check` |
-| Alerts store | `alerts.store.ts` | Unused for now (TODO in file — see review-flags deferred) |
+| Alerts store | `alerts.store.ts` | Unused for now |
 | Small utils | `debounce`, `throttle`, `prevent-bubbling`, `formatDateRelative` | Used in UI |
 
 ## Shared server infrastructure
@@ -126,7 +126,7 @@ API currently allows only `item === 'post'` even though the schema supports comm
 | DB accessor | `server/utils/db.ts` | Drizzle + schema |
 | Body validation | `server/composable/useSafeReadValidateBody.ts` | Zod → 422 field pairs |
 | Auth config | `server/config/auth.ts` | JWT secret / alg |
-| Telemetry middleware | `server/__middleware/logger.ts` | Not under `server/middleware/` — deferred |
+| Telemetry middleware | `server/__middleware/logger.ts` | Not under `server/middleware/` - deferred |
 
 ## Shared types / constants
 

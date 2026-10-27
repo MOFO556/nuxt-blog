@@ -14,10 +14,10 @@ Any of:
 
 ## Checklist (all that apply)
 
-1. **[modules.md](modules.md)** — Module section lists purpose and key paths; remove stale paths.
-2. **[db-map.md](db-map.md)** — Tables, FKs, constraints, and Mermaid ER match schema under `server/database/schema/`.
-3. **[relations-map.md](relations-map.md)** — Client→API and API→utils/schema edges, tasks/cron, and broadcast channels stay accurate.
-4. **[README.md](README.md)** — Adjust the short project description if user-visible capabilities changed.
+1. **[modules.md](modules.md)** - Module section lists purpose and key paths; remove stale paths.
+2. **[db-map.md](db-map.md)** - Tables, FKs, constraints, and Mermaid ER match schema under `server/database/schema/`.
+3. **[relations-map.md](relations-map.md)** - Client→API and API→utils/schema edges, tasks/cron, and broadcast channels stay accurate.
+4. **[README.md](README.md)** - Adjust the short project description if user-visible capabilities changed.
 
 ## Done when
 

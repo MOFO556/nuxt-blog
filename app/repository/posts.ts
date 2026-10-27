@@ -1,5 +1,5 @@
 import type { Pagination } from "~/types/core";
-import type { Post, PostInsert } from "~/types/posts"
+import type { Post, PostInsert, PostUpdate } from "~/types/posts"
 
 export function createPostsRepository(appFetch: typeof $fetch) {
   const postsStore = usePostsStore();
@@ -27,7 +27,7 @@ export function createPostsRepository(appFetch: typeof $fetch) {
         body: payload
       })      
     },
-    async edit(payload: Post) {
+    async edit(payload: PostUpdate) {
       return appFetch<Post>(`posts/${payload.id}`, { 
         method: 'PUT',
         body: payload

@@ -1,6 +1,7 @@
 import { and, eq, gte, lte, like, or, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { posts, tags, postTags, users, publicUserColumns } from '~~/server/database/schema';
+import { PostMode } from '~~/shared/types/posts';
 
 const querySchema = z.object({
   q: z.string().trim().min(1).max(80).optional(),
@@ -23,7 +24,12 @@ export default defineEventHandler(async (event) => {
   const conditions: any[] = [];
   if (q) {
     const needle = `%${q.toLowerCase()}%`;
-    conditions.push(or(like(posts.title, `%${needle}%`), like(posts.content, `%${needle}%`)));
+    conditions.push(or(
+      sql`lower(${posts.title}) like ${needle}`,
+      sql`lower(coalesce(${posts.description}, '')) like ${needle}`,
+      sql`lower(coalesce(${posts.excerpt}, '')) like ${needle}`,
+      and(eq(posts.mode, PostMode.Legacy), sql`lower(${posts.content}) like ${needle}`),
+    ));
   }
   if (from)
     conditions.push(gte(posts.createdAt, `${from} 00:00:00`));
@@ -79,7 +85,10 @@ export default defineEventHandler(async (event) => {
     tags: p.postTags.map(pt => pt.tag),
     postTags: undefined,
     attachments: p.attachments.map(a => ({
-      path: a.image?.path, postCover: a.postCover, description: a.image?.description,
+      id: a.imageId,
+      path: a.image?.path,
+      postCover: a.postCover,
+      description: a.image?.description,
     })),
   }));
 

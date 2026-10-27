@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
       tags: rawPost.postTags.map(pt => pt.tag),
       postTags: undefined,
       attachments: rawPost.attachments.map(att => ({
+        id: att.imageId,
         path: att.image?.path,
         postCover: att?.postCover,
         description: att.image?.description

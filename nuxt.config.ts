@@ -54,7 +54,7 @@ export default defineNuxtConfig({
         
       const { existsSync } = await import("node:fs");
       if (!existsSync(dbFile)) {
-        console.warn(`[prerender] skipping popular tags — DB not found at ${dbFile}`);
+        console.warn(`[prerender] skipping popular tags - DB not found at ${dbFile}`);
         return;
       }
 

@@ -1,6 +1,6 @@
 # Database map
 
-SQLite via Drizzle ORM. Schema lives under [`server/database/schema/`](../../server/database/schema/). Validators (Zod) sit beside the schema as `*.validators.ts`. Migrations are generated — do not edit `server/database/migrations/` by hand.
+SQLite via Drizzle ORM. Schema lives under [`server/database/schema/`](../../server/database/schema/). Validators (Zod) sit beside the schema as `*.validators.ts`. Migrations are generated - do not edit `server/database/migrations/` by hand.
 
 ## Entity-relationship overview
 
@@ -33,7 +33,7 @@ erDiagram
 | `Credentials` | [`auth/credentials.ts`](../../server/database/schema/auth/credentials.ts) | WebAuthn passkeys per user |
 | `Session` | [`auth/sessions.ts`](../../server/database/schema/auth/sessions.ts) | Login sessions (JWT ties to session id) |
 | `WebauthnAttempt` | [`auth/webauthnAttempts.ts`](../../server/database/schema/auth/webauthnAttempts.ts) | Short-lived WebAuthn challenge state |
-| `Post` | [`posts.ts`](../../server/database/schema/posts.ts) | Blog posts |
+| `Post` | [`posts.ts`](../../server/database/schema/posts.ts) | Blog posts (`mode` legacy\|formatted; optional `content_html`, `description`, `excerpt`) |
 | `Tag` / `PostTag` | [`tags.ts`](../../server/database/schema/tags.ts) | Tags and post↔tag join |
 | `Image` | [`images.ts`](../../server/database/schema/images.ts) | Blob metadata (`path`, description) |
 | `PostAttachment` | [`postsAttachment.ts`](../../server/database/schema/postsAttachment.ts) | Images on a post; optional cover |
@@ -46,7 +46,7 @@ Drizzle relation helpers: [`relations.ts`](../../server/database/schema/relation
 
 ### User
 
-- `avatar` → `Image.id` (`onDelete: set null`) — deleting the image clears the avatar, not the user
+- `avatar` → `Image.id` (`onDelete: set null`) - deleting the image clears the avatar, not the user
 - Checks: `auth_method` ∈ `password|passkey|both`; password required unless passkey-only
 
 ### Credentials
@@ -64,6 +64,11 @@ Drizzle relation helpers: [`relations.ts`](../../server/database/schema/relation
 ### Post
 
 - `userId` → `User.id` (`cascade`)
+- `mode` - `legacy|formatted` (default `legacy`; immutable after create)
+- `content` - plain text (legacy) or TipTap JSON string (formatted)
+- `content_html` - sanitized HTML for formatted posts (null for legacy)
+- `description` - optional plain list/search blurb
+- `excerpt` - persisted plain preview (from description or stripped body) for list/`q`
 
 ### Tag / PostTag
 
@@ -78,8 +83,8 @@ Drizzle relation helpers: [`relations.ts`](../../server/database/schema/relation
 
 - `userId` → `User.id` (`cascade`)
 - `postId` → `Post.id` (`cascade`, nullable)
-- `imageId` → `Image.id` (`cascade`, nullable) — comment **on** an image
-- `parentId` → `Comment.id` (`cascade`) — threaded replies
+- `imageId` → `Image.id` (`cascade`, nullable) - comment **on** an image
+- `parentId` → `Comment.id` (`cascade`) - threaded replies
 - Check `comment_entity_check`: exactly one of `post_id` / `image_id` is set
 
 ### PostAttachment
@@ -126,5 +131,5 @@ API handlers wrap Zod via [`useSafeReadValidateBody`](../../server/composable/us
 
 Two different “image” roles on comments:
 
-1. **Target** — `Comment.imageId`: the comment is *about* that image (schema + XOR with `postId`). Public comment APIs currently only accept `item === 'post'`.
-2. **Attachment** — `CommentAttachment`: images uploaded *with* a comment on a post.
+1. **Target** - `Comment.imageId`: the comment is *about* that image (schema + XOR with `postId`). Public comment APIs currently only accept `item === 'post'`.
+2. **Attachment** - `CommentAttachment`: images uploaded *with* a comment on a post.

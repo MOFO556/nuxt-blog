@@ -4,20 +4,54 @@ import { postInsertSchema } from '~~/server/database/posts.validators';
 import { requireAuth } from '~~/server/utils/auth';
 import { inArray } from 'drizzle-orm';
 import { slugify } from '~~/shared/utils/slugify';
+import { sanitizePostHtml } from '~~/shared/utils/sanitizePostHtml';
+import { buildPostExcerpt } from '~~/shared/utils/buildPostExcerpt';
+import { PostMode } from '~~/shared/types/posts';
+import { z } from 'zod';
+
+const imagesBodySchema = z.object({
+  images: z.array(z.object({
+    id: z.number().int().positive(),
+    postCover: z.boolean(),
+  })).optional(),
+});
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const userId = event.context.user.id;
   const input = await useSafeReadValidateBody(event, postInsertSchema);
-  const { images }: { images?: { postCover: boolean, id: number }[] } = await readBody(event);
+  const { images } = imagesBodySchema.parse(await readBody(event));
   let created: Post | undefined;
+
+  const { tags: tagNames, contentHtml, description, mode, ...postFields } = input;
+  const sanitizedHtml = mode === PostMode.Formatted && contentHtml
+    ? sanitizePostHtml(contentHtml)
+    : null;
+  const excerpt = buildPostExcerpt({
+    mode,
+    description,
+    content: postFields.content,
+    contentHtml: sanitizedHtml,
+  });
   
   useDb().transaction(tx => {
     try {
-      created = tx.insert(posts).values({...input, userId}).returning().get();
+      created = tx.insert(posts).values({
+        ...postFields,
+        mode,
+        description: description || null,
+        contentHtml: sanitizedHtml,
+        excerpt,
+        userId,
+      }).returning().get();
     }
-    catch (error: any) {
-      if (String(error?.code).includes('SQLITE_CONSTRAINT_UNIQUE')) {
+    catch (error: unknown) {
+      if (
+        typeof error === 'object'
+        && error !== null
+        && 'code' in error
+        && String(error.code).includes('SQLITE_CONSTRAINT_UNIQUE')
+      ) {
         throw createError({ statusCode: 409, statusMessage: 'Already saved' });
       }
       throw error;
@@ -29,16 +63,18 @@ export default defineEventHandler(async (event) => {
           .values(images.map((i: { postCover: boolean, id: number }, index: number) => ({          
             postId: created!.id,
             imageId: i.id,
-            postCover: postCoverId === -1 ? index === 0 : postCoverId === index
+            postCover: postCoverId === -1
+              ? (mode === PostMode.Legacy && index === 0)
+              : postCoverId === index,
           }))).run();
         }
     }
-    catch (error: any) {
+    catch (error: unknown) {
       throw error;
     }
-    const tagNames = input.tags ?? [];
-    if (tagNames.length && created?.id) {
-      const pairs = tagNames.map(t => ({
+    const incomingTags = tagNames ?? [];
+    if (incomingTags.length && created?.id) {
+      const pairs = incomingTags.map(t => ({
         name: t.name.trim(),
         slug: (t.slug ?? slugify(t.name)).toLowerCase(),
       }));

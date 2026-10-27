@@ -17,7 +17,10 @@
   <posts-form 
     :id="post.id" 
     :title="post.title" 
-    :content="post.content" 
+    :content="post.content"
+    :content-html="post.contentHtml"
+    :description="post.description"
+    :mode="post.mode"
     :url="post.url" 
     :tags="post.tags"
     :images="imageSrcs"

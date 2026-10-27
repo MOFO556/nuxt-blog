@@ -43,8 +43,8 @@ Stores updated from repositories: `posts` store (`addPosts` from list/my), `user
 
 | Route | Auth | Tables | Utils / other |
 |-------|------|--------|---------------|
-| `POST /api/auth/register` | — | users, images, sessions | `useSafeReadValidateBody`, `createSession`, `signToken` |
-| `POST /api/auth/login` | — | users, images, sessions | bcrypt, `createSession`, `signToken`, `broadcast` `user:{id}` |
+| `POST /api/auth/register` | - | users, images, sessions | `useSafeReadValidateBody`, `createSession`, `signToken` |
+| `POST /api/auth/login` | - | users, images, sessions | bcrypt, `createSession`, `signToken`, `broadcast` `user:{id}` |
 | `GET /api/auth/check` | soft | users, sessions, images | `loadSession` / auth utils |
 | `PATCH /api/auth/profile` | `requireAuth` | users, images, credentials, sessions | bcrypt, validators |
 | `GET/DELETE /api/auth/sessions/*` | `requireAuth` | sessions | `broadcast` on revoke |
@@ -58,9 +58,9 @@ Shared auth helpers: [`server/utils/auth.ts`](../../server/utils/auth.ts) (`requ
 |-------|--------|-------|
 | `GET /api/posts/` | posts, users, tags, postTags | filters (author, tags, dates, q) |
 | `GET /api/posts/my` | posts | auth |
-| `GET /api/posts/:id` | posts, users | — |
-| `POST /api/posts/` | posts, tags, postTags, postAttachments | `requireAuth`, validators, `slugify` |
-| `PUT /api/posts/:id` | same | owner check, `slugify` |
+| `GET /api/posts/:id` | posts, users | - |
+| `POST /api/posts/` | posts, tags, postTags, postAttachments | `requireAuth`, validators, `slugify`, `sanitizePostHtml`, `buildPostExcerpt` |
+| `PUT /api/posts/:id` | same | owner check, mode immutable, attachment replace when `images` sent, `sanitizePostHtml`, `buildPostExcerpt` |
 | `DELETE /api/posts/:id` | posts | `requireAuth` + owner check (403 if foreign) |
 
 ### Comments
@@ -76,7 +76,7 @@ Shared auth helpers: [`server/utils/auth.ts`](../../server/utils/auth.ts) (`requ
 | Route | Tables / storage | Utils |
 |-------|------------------|-------|
 | `POST /api/images/posts|comments/:id` | images, postAttachments / commentAttachments, posts, comments; hub blob | `requireAuth`, `broadcast` on comment description updates |
-| `GET /api/images/posts|comments/:id` | attachment joins | — |
+| `GET /api/images/posts|comments/:id` | attachment joins | - |
 | `POST /api/images/avatar` | images; hub blob | `requireAuth`; inserts Image; profile PATCH links avatar id |
 
 Serving: [`server/routes/images/[...pathname].get.ts`](../../server/routes/images/[...pathname].get.ts) (blob), [`server/routes/_img/[...pathname].get.ts`](../../server/routes/_img/[...pathname].get.ts) (sharp resize), provider [`nuxtHubBlobIpx`](../../server/providers/nuxtHubBlobIpx.ts).
@@ -102,12 +102,12 @@ flowchart TB
 
 Channels used in production code:
 
-- `post:{id}` — comment created/updated/deleted; comment image description updates
-- `user:{id}` — sessions added/revoked; credentials added/removed
+- `post:{id}` - comment created/updated/deleted; comment image description updates
+- `user:{id}` - sessions added/revoked; credentials added/removed
 
 Client consumer: [`useRealtime`](../../app/composables/useRealTime.ts) in `comments.vue`, `credentials.vue`, `sessions.vue`.
 
-**Deploy note:** broadcast is process-local — single Nitro instance only (multi-instance pub/sub deferred; see [review-flags.md](review-flags.md)).
+**Deploy note:** broadcast is process-local - single Nitro instance only (multi-instance pub/sub deferred; see [review-flags.md](review-flags.md)).
 
 ## Tasks (Nitro)
 
@@ -166,4 +166,4 @@ flowchart TB
 ## Notable cross-cuts
 
 - **IP geo**: `useLookUpIp` from session create and WebAuthn credential/register verify (external `ip-api.com`).
-- **Prerender**: `nuxt.config.ts` opens SQLite with `better-sqlite3` for popular tags + authors routes — bypasses Drizzle/API.
+- **Prerender**: `nuxt.config.ts` opens SQLite with `better-sqlite3` for popular tags + authors routes - bypasses Drizzle/API.

@@ -64,7 +64,8 @@ COPY --from=build /app/server/database/migrations ./server/database/migrations
 COPY litestream.yml /etc/litestream.yml
 COPY scripts/docker-entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh \
+RUN sed -i 's/\r$//' /entrypoint.sh \
+  && chmod +x /entrypoint.sh \
   && mkdir -p /data/db
 
 ENV NODE_ENV=production \

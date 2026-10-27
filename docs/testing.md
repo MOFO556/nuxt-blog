@@ -8,7 +8,7 @@ How this project is tested, how to run the suites, and how we use TDD day to day
 pnpm test:unit # Pure helpers, Zod validators (Node, fast)
 pnpm test:nuxt # Stores, middleware, components, Nitro helpers
 pnpm test:e2e # API + Playwright browser flows (slower)
-pnpm test:ci # unit + nuxt — what Docker runs by default
+pnpm test:ci # unit + nuxt - what Docker runs by default
 pnpm test # All Vitest projects
 pnpm test:watch # Watch mode
 ```
@@ -23,7 +23,7 @@ node node_modules/playwright-core/cli.js install chromium
 
 ```
 test/
-  unit/ # environment: node — no Nuxt runtime
+  unit/ # environment: node - no Nuxt runtime
   nuxt/ # environment: nuxt + happy-dom
   e2e/ # @nuxt/test-utils + Playwright / $fetch server
   helpers/ # temp SQLite, API mocks, fetch-error helpers

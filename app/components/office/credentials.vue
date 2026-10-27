@@ -64,7 +64,7 @@
           <div class="flex items-center gap-1 w-full pr-6 relative">
             <UIcon :name="isPasskey(connection) ? 'i-lucide-key' : 'i-lucide-lock-keyhole'" />
             <span class="w-full">
-              {{ isPasskey(connection) ? 'Synced passkey' : 'Hardware key' }} —
+              {{ isPasskey(connection) ? 'Synced passkey' : 'Hardware key' }} -
               {{ connection.userAgent }}
             </span>
             <UIcon class="absolute right-0 bg-error cursor-pointer" 

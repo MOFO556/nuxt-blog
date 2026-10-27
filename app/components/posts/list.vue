@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import type { Pagination } from '~/types/core';
   import type { Post } from '~/types/posts';
+  import { PostMode } from '~~/shared/types/posts';
 
   const props = defineProps<{
     params?: Record<string, any>;
@@ -36,6 +37,8 @@
       ...p,
       date: p.updatedAt || p.createdAt,
       authors: [{ name: p.user.login }],
+      cardDescription: p.description
+        || (p.mode === PostMode.Formatted ? (p.excerpt || '') : p.content),
     })),
   );
 </script>
@@ -49,7 +52,7 @@
           :key="post.id"
           :to="`/posts/${post.id}`"
           :title="post.title"
-          :description="post.content"
+          :description="post.cardDescription"
           :date="post.date"
           :authors="post.authors"
           :image="post.attachments?.find(i => i.postCover)?.path">
