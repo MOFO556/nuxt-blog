@@ -14,6 +14,6 @@
 <template>
   <posts-list class="mt-4"
     :params="params"
-    :empty-title="`No posts by “${login}”`"
+    :empty-title='`No posts "by ${login}"`'
     empty-description="This author hasn't published anything yet" />
 </template>

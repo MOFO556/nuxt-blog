@@ -109,6 +109,16 @@ describe('postInsertSchema', () => {
     expect(result.success).toBe(false)
   })
 
+  it('rejects formatted posts when content is not TipTap JSON', () => {
+    const result = postInsertSchema.safeParse({
+      title: 'Hello world',
+      mode: 'formatted',
+      content: '<p>not tip-tap json</p>',
+      contentHtml: '<p>not tip-tap json</p>',
+    })
+    expect(result.success).toBe(false)
+  })
+
   it('rejects description longer than 300 characters', () => {
     const result = postInsertSchema.safeParse({
       title: 'Hello world',
@@ -119,20 +129,28 @@ describe('postInsertSchema', () => {
   })
 
   it('allows formatted content longer than the legacy 5000 cap', () => {
+    const tipTap = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'x'.repeat(5001) }] }],
+    })
     const result = postInsertSchema.safeParse({
       title: 'Hello world',
       mode: 'formatted',
-      content: 'x'.repeat(5001),
+      content: tipTap,
       contentHtml: `<p>${'x'.repeat(5001)}</p>`,
     })
     expect(result.success).toBe(true)
   })
 
   it('rejects formatted content over 100KB', () => {
+    const tipTap = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'x'.repeat(100_001) }] }],
+    })
     const result = postInsertSchema.safeParse({
       title: 'Hello world',
       mode: 'formatted',
-      content: 'x'.repeat(100_001),
+      content: tipTap,
       contentHtml: '<p>ok</p>',
     })
     expect(result.success).toBe(false)
@@ -149,26 +167,91 @@ describe('postPatchSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('allows large tip-tap JSON when mode is formatted without contentHtml', () => {
+  it('rejects tip-tap JSON without contentHtml when mode is formatted', () => {
     const result = postPatchSchema.safeParse({
       mode: 'formatted',
       content: 'x'.repeat(5001),
     })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
   })
 
-  it('validates contentHtml alone for formatted mode', () => {
+  it('accepts content and contentHtml together for formatted mode', () => {
     const ok = postPatchSchema.safeParse({
       mode: 'formatted',
+      content: '{"type":"doc","content":[]}',
       contentHtml: '<p>Hello</p>',
     })
     expect(ok.success).toBe(true)
+  })
+
+  it('rejects non-TipTap content for formatted mode patches', () => {
+    expect(postPatchSchema.safeParse({
+      mode: 'formatted',
+      content: '<p>not tip-tap</p>',
+      contentHtml: '<p>not tip-tap</p>',
+    }).success).toBe(false)
+  })
+
+  it('rejects contentHtml alone for formatted mode', () => {
+    const alone = postPatchSchema.safeParse({
+      mode: 'formatted',
+      contentHtml: '<p>Hello</p>',
+    })
+    expect(alone.success).toBe(false)
 
     const empty = postPatchSchema.safeParse({
       mode: 'formatted',
       contentHtml: '',
     })
     expect(empty.success).toBe(false)
+  })
+
+  it('allows large tip-tap JSON when mode is omitted (PUT rechecks against post.mode)', () => {
+    const result = postPatchSchema.safeParse({
+      content: 'x'.repeat(5001),
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects large content when mode is legacy', () => {
+    expect(postPatchSchema.safeParse({
+      mode: 'legacy',
+      content: 'x'.repeat(5001),
+    }).success).toBe(false)
+  })
+
+  it('rejects short legacy-sized content when mode is omitted', () => {
+    const result = postPatchSchema.safeParse({
+      content: 'short',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects empty contentHtml when mode is omitted', () => {
+    const result = postPatchSchema.safeParse({
+      contentHtml: '',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('validates contentHtml alone when mode is omitted', () => {
+    expect(postPatchSchema.safeParse({
+      contentHtml: '<p>Hello</p>',
+    }).success).toBe(true)
+  })
+
+  it('rejects short content with contentHtml when mode is omitted', () => {
+    expect(postPatchSchema.safeParse({
+      content: 'short',
+      contentHtml: '<p>Hello</p>',
+    }).success).toBe(false)
+  })
+
+  it('allows legacy-sized content with contentHtml when mode is omitted', () => {
+    expect(postPatchSchema.safeParse({
+      content: 'x'.repeat(25),
+      contentHtml: '<p>Hello</p>',
+    }).success).toBe(true)
   })
 })
 

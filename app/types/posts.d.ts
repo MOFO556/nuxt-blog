@@ -107,7 +107,12 @@ export type UploadedWithTemp = UploadMethodResultItem & {
 
 export type PostEditorExpose = {
   insertImageAtCursor: (src: string, imageId: string | number) => void,
-  insertCarousel: (imageIds: Array<string | number>) => void,
+  prependImage: (src: string, imageId: string | number) => void,
+  insertCarousel: (imageIds: (string | number)[], slot?: string | null) => void,
+  fillCarouselSlot: (slot: string, imageIds: (string | number)[]) => boolean,
+  fillCarouselSlots: (slots: { slot: string; imageIds: (string | number)[] }[]) => void,
+  setHtmlContent: (html: string, options?: { lockAuthored?: boolean }) => boolean,
+  editor: unknown,
 }
 
 export type PostFormattedFields = {

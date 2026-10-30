@@ -1,18 +1,28 @@
 <script setup lang="ts">
   import type { PostImageMeta, Tag } from '~/types/posts';
-  import type { PostMode } from '~~/shared/types/posts';
+  import type { PostMode as PostModeType } from '~~/shared/types/posts';
+  import { usePostFormAssistantBridge } from '~/composables/usePostFormAssistantBridge';
 
-  const props = defineProps<{
+  const props = withDefaults(defineProps<{
     url?: string,
     title?: string,
     content?: string,
     contentHtml?: string | null,
     description?: string | null,
-    mode?: PostMode,
+    mode?: PostModeType,
     images?: PostImageMeta[],
     id?: number,
     tags?: Tag[],
-  }>();
+    wide?: boolean,
+  }>(), {
+    wide: false,
+  });
+
+  const formClass = computed(() =>
+    props.wide
+      ? 'w-full max-w-3xl mx-auto p-4 sm:p-6 space-y-4'
+      : 'max-w-xl mx-auto p-6 space-y-4',
+  );
 
   const {
     form,
@@ -34,12 +44,20 @@
     submitForm,
     onCreateTag,
   } = await usePostForm(props);
+
+  const { submitPostForm } = usePostFormAssistantBridge({
+    form,
+    editorRef,
+    isFormatted,
+    allTags,
+    submitForm,
+  });
 </script>
 
 <template>  
-  <UForm class="max-w-xl mx-auto p-6 space-y-4"
+  <UForm :class="formClass"
     :state="form.value"
-    @submit.prevent="submitForm">
+    @submit.prevent="submitPostForm">
     <UFormField
       v-if="!modeLocked"
       class="w-full relative pb-2"

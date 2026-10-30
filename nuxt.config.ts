@@ -242,6 +242,28 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     dbFile: process.env.NUXT_DB_FILE || "./.data/db/stash.db",
+    aiBaseUrl: process.env.AI_BASE_URL || "",
+    aiApiKey: process.env.AI_API_KEY || "",
+    aiModel: process.env.AI_MODEL || "llama-3.1-8b-instant",
+    embeddingBaseUrl: process.env.EMBEDDING_BASE_URL || process.env.AI_BASE_URL || "",
+    embeddingApiKey: process.env.EMBEDDING_API_KEY || process.env.AI_API_KEY || "",
+    embeddingModel: process.env.EMBEDDING_MODEL || "nomic-embed-text",
+    embeddingDimensions: process.env.EMBEDDING_DIMENSIONS || "768",
+    unsplashAccessKey:
+      process.env.NUXT_UNSPLASH_ACCESS_KEY
+      || process.env.UNSPLASH_ACCESS_KEY
+      || "",
+    webSearchApiKey:
+      process.env.NUXT_WEB_SEARCH_API_KEY
+      || process.env.WEB_SEARCH_API_KEY
+      || "",
+    webSearchProvider:
+      process.env.NUXT_WEB_SEARCH_PROVIDER
+      || process.env.WEB_SEARCH_PROVIDER
+      || "tavily",
+    assistantGuestRpm: process.env.ASSISTANT_GUEST_RPM || "10",
+    assistantSplitTurns: process.env.ASSISTANT_SPLIT_TURNS || "",
+    assistantMaxSteps: process.env.ASSISTANT_MAX_STEPS || "",
     public: {
       API_URL: process.env.NUXT_PUBLIC_API_URL || "/api/",
     },
@@ -269,6 +291,41 @@ export default defineNuxtConfig({
     fonts: false
   },
   vite: {
+    resolve: {
+      // TipTap/ProseMirror crash if two copies of prosemirror-model load
+      dedupe: [
+        "prosemirror-model",
+        "prosemirror-state",
+        "prosemirror-view",
+        "prosemirror-transform",
+        "prosemirror-keymap",
+        "prosemirror-commands",
+        "prosemirror-history",
+        "prosemirror-tables",
+        "prosemirror-gapcursor",
+        "prosemirror-dropcursor",
+        "prosemirror-inputrules",
+        "@tiptap/pm",
+        "@tiptap/core",
+        "@tiptap/vue-3",
+      ],
+    },
+    // Nuxt UI Editor docs: pre-bundle so Vite does not load two ProseMirror copies.
+    // Do not include `@tiptap/pm` / `@tiptap/core` here - no root "." export breaks optimizeDeps.
+    optimizeDeps: {
+      include: [
+        "@nuxt/ui > prosemirror-state",
+        "@nuxt/ui > prosemirror-transform",
+        "@nuxt/ui > prosemirror-model",
+        "@nuxt/ui > prosemirror-view",
+        "@nuxt/ui > prosemirror-gapcursor",
+        "prosemirror-model",
+        "prosemirror-state",
+        "prosemirror-view",
+        "prosemirror-transform",
+        "prosemirror-gapcursor",
+      ],
+    },
     server: {
       hmr: {
         ...(process.env.NODE_ENV === "development" && {

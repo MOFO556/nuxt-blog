@@ -4,3 +4,15 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   vue-demi: true
+
+overrides:
+  '@tiptap/pm': 3.32.0
+  '@tiptap/core': 3.32.0
+  '@tiptap/vue-3': 3.32.0
+  '@tiptap/starter-kit': 3.32.0
+  '@tiptap/extension-collaboration': 3.32.0
+  '@tiptap/extension-drag-handle': 3.32.0
+  '@tiptap/extension-drag-handle-vue-3': 3.32.0
+  '@tiptap/extension-node-range': 3.32.0
+  '@tiptap/y-tiptap': 3.0.9
+  prosemirror-model: 1.25.12

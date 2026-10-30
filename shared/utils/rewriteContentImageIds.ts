@@ -6,6 +6,10 @@ type RewriteContentImageIdsInput = {
   blobSrcMap?: Record<string, string>;
 };
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function mapId(value: unknown, idMap: Record<string, number>): unknown {
   if (typeof value === 'string' && idMap[value] !== undefined)
     return idMap[value];
@@ -73,6 +77,21 @@ function rewriteNode(
   return next;
 }
 
+function rewriteImageIdsAttr(
+  raw: string,
+  idMap: Record<string, number>,
+): string {
+  return raw
+    .split(',')
+    .map((part) => {
+      const trimmed = part.trim();
+      if (trimmed && idMap[trimmed] !== undefined)
+        return String(idMap[trimmed]);
+      return part;
+    })
+    .join(',');
+}
+
 function rewriteHtml(
   html: string,
   idMap: Record<string, number>,
@@ -82,8 +101,20 @@ function rewriteHtml(
   for (const [blobSrc, path] of Object.entries(blobSrcMap))
     next = next.split(blobSrc).join(path);
 
-  for (const [tempId, realId] of Object.entries(idMap))
-    next = next.split(tempId).join(String(realId));
+  next = next.replace(
+    /\bdata-image-ids=(["'])([^"']*)\1/gi,
+    (_full, quote: string, raw: string) =>
+      `data-image-ids=${quote}${rewriteImageIdsAttr(raw, idMap)}${quote}`,
+  );
+
+  for (const [tempId, realId] of Object.entries(idMap)) {
+    const escaped = escapeRegExp(tempId);
+    const real = String(realId);
+    next = next.replace(
+      new RegExp(`(\\b(?:data-image-id|alt)=["'])${escaped}(["'])`, 'gi'),
+      `$1${real}$2`,
+    );
+  }
 
   return next;
 }
@@ -93,10 +124,16 @@ export function rewriteContentImageIds(
 ): { content: string; contentHtml: string } {
   const pathMap = input.pathMap ?? {};
   const blobSrcMap = input.blobSrcMap ?? {};
-  const parsed: unknown = JSON.parse(input.content);
-  const rewritten = rewriteNode(parsed, input.idMap, pathMap, blobSrcMap);
+  let content = input.content;
+  try {
+    const parsed: unknown = JSON.parse(input.content);
+    content = JSON.stringify(rewriteNode(parsed, input.idMap, pathMap, blobSrcMap));
+  }
+  catch {
+    // Corrupt / non-JSON TipTap content: keep original so upload+submit can finish.
+  }
   return {
-    content: JSON.stringify(rewritten),
+    content,
     contentHtml: rewriteHtml(input.contentHtml, input.idMap, blobSrcMap),
   };
 }

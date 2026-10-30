@@ -4,7 +4,11 @@ import type {
   UploadedWithTemp,
 } from '~/types/posts';
 import type { UploadMethodResultItem } from '~/types/forms';
-import { collectContentImageIds } from '~~/shared/utils/collectContentImageIds';
+import {
+  collectContentImageIds,
+  collectHtmlImageIds,
+  collectHtmlTempImageIds,
+} from '~~/shared/utils/collectContentImageIds';
 
 function asUploadedWithTemp(
   items: UploadMethodResultItem[] | undefined,
@@ -59,7 +63,7 @@ export function buildClientTempIdMap(
 
 export function annotateStagedFileIds(
   uploaded: Partial<Record<string, UploadMethodResultItem[]>>,
-  staged: Array<Pick<StagedUploadFile, 'clientTempId' | 'fileId' | 'originalName' | 'name'>>,
+  staged: Pick<StagedUploadFile, 'clientTempId' | 'fileId' | 'originalName' | 'name'>[],
 ): void {
   const bags: UploadedWithTemp[] = [
     ...asUploadedWithTemp(uploaded.cover),
@@ -132,16 +136,47 @@ export function buildLegacyAttachmentPayload(
     .map(file => ({ id: file.fileId, postCover: !!file.postCover }));
 }
 
+export function filterContentImagesReferencedInBody(args: {
+  contentJson: string;
+  contentHtml?: string;
+  contentImages: StagedUploadFile[];
+}): StagedUploadFile[] {
+  const numericIds = new Set([
+    ...collectContentImageIds(args.contentJson),
+    ...collectHtmlImageIds(args.contentHtml ?? ''),
+  ]);
+  const tempIds = new Set(collectHtmlTempImageIds(args.contentHtml ?? ''));
+
+  return args.contentImages.filter((file) => {
+    if (typeof file.fileId === 'number' && numericIds.has(file.fileId))
+      return true;
+    if (file.clientTempId && tempIds.has(file.clientTempId))
+      return true;
+    return false;
+  });
+}
+
 export function buildFormattedAttachmentPayload(args: {
   contentJson: string;
+  contentHtml?: string;
   contentImages: StagedUploadFile[];
   cover: StagedUploadFile | undefined;
 }): PostAttachmentPayload[] {
-  const ids = new Set<number>(collectContentImageIds(args.contentJson));
+  const ids = new Set<number>([
+    ...collectContentImageIds(args.contentJson),
+    ...collectHtmlImageIds(args.contentHtml ?? ''),
+  ]);
 
-  for (const file of args.contentImages) {
-    if (typeof file.fileId === 'number')
-      ids.add(file.fileId);
+  const fileIdByTemp = new Map(
+    args.contentImages
+      .filter((file): file is StagedUploadFile & { clientTempId: string; fileId: number } =>
+        Boolean(file.clientTempId) && typeof file.fileId === 'number')
+      .map(file => [file.clientTempId, file.fileId]),
+  );
+  for (const tempId of collectHtmlTempImageIds(args.contentHtml ?? '')) {
+    const fileId = fileIdByTemp.get(tempId);
+    if (fileId !== undefined)
+      ids.add(fileId);
   }
 
   const coverId = args.cover?.fileId;
@@ -155,7 +190,7 @@ export function buildFormattedAttachmentPayload(args: {
 }
 
 export function newClientTempId(): string {
-  return `client:${crypto.randomUUID()}`;
+  return `client:${generateUUID()}`;
 }
 
 export function toStagedUploadFile(

@@ -42,7 +42,12 @@ export default eventHandler(async (event) => {
     });
     const description = manifest.find(m => m.newFileName === entry.filename)?.description;
     resolvedPaths.push(uploaded.pathname);
-    newImages.push({ name: entry.filename, path: uploaded.pathname, description: description});
+    newImages.push({
+      name: entry.filename,
+      path: uploaded.pathname,
+      description: description,
+      uploadedBy: userId,
+    });
   }
   const db = useDb();
 

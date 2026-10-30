@@ -1,7 +1,9 @@
 import { blob } from 'hub:blob'
 import { images } from '~~/server/database/schema';
+import { loadSession } from '~~/server/utils/auth';
 
 export default eventHandler(async (event) => {
+  const session = await loadSession(event);
   const form = await readMultipartFormData(event);
 
   if (!form)
@@ -28,7 +30,8 @@ export default eventHandler(async (event) => {
   else {
     const [image] = await useDb().insert(images).values({
       name: avatar.filename,
-      path: uploaded.pathname
+      path: uploaded.pathname,
+      uploadedBy: session?.user.id ?? null,
     }).returning();
     
     return image;

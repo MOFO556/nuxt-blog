@@ -1,7 +1,9 @@
 <script setup lang="ts">
   import type { FilteredNavigationMenuItem, MenuFilters } from '~/types/core';
 
+  const route = useRoute();
   const { items } = useNavigationItems();
+  const showFloatingAssistant = computed(() => !route.meta.assistantDocked);
   const navItems = computed(() => {
     return (filterParam: MenuFilters) =>
       items.value.filter((i: FilteredNavigationMenuItem) => {
@@ -54,5 +56,9 @@
     <UPage>
       <slot></slot>
     </UPage>
+    <template v-if="showFloatingAssistant">
+      <assistant-fab/>
+      <assistant-panel/>
+    </template>
 	</UApp>
  </template>

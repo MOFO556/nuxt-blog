@@ -24,13 +24,12 @@
       <posts-tags :tags="post.tags ?? []" :inline="3" class="ml-auto" />
     </template>
     <template #description>
-      <posts-formatted-body
-        v-if="isFormatted && post.contentHtml"
-        :content-html="post.contentHtml"
+      <posts-formatted-body v-if="isFormatted"
+        :content-html="post.contentHtml || ''"
         :attachments="post.attachments ?? []"
-        :can-edit="canEdit" />
-      <div
-        v-else
+        :canEdit="canEdit"
+        :postId="post.id"/>
+      <div v-else
         class="post-legacy-body whitespace-pre-wrap text-default">
         {{ post.content }}
       </div>
@@ -38,7 +37,8 @@
   </UBlogPost>
   <posts-attachments v-if="!isFormatted && post.attachments?.length"
     :attachments="post.attachments"
-    :canEdit="canEdit"/>
+    :canEdit="canEdit"
+    :postId="post.id"/>
   <posts-comments :post="post" />
   <posts-navigation :postId="post.id"
     :basePath="basePath"

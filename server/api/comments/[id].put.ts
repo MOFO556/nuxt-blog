@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
 import { commentAttachments, comments } from '~~/server/database/schema';
 import { commentPatchSchema } from '~~/server/database/comments.validators';
+import { assertUserMayAttachPostImages } from '~~/server/utils/assertUserMayAttachPostImages';
 import { requireAuth } from '~~/server/utils/auth';
 import { broadcast } from '~~/server/utils/broadcast';
 
@@ -33,6 +34,12 @@ export default defineEventHandler(async (event) => {
       .get();
 
     if (images !== undefined) {
+      if (images.length)
+        assertUserMayAttachPostImages(tx, {
+          userId,
+          imageIds: images.map(i => i.id),
+          commentId: id,
+        });
       tx.delete(commentAttachments).where(eq(commentAttachments.commentId, id)).run();
       if (images.length) {
         tx.insert(commentAttachments)

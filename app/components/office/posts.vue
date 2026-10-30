@@ -19,7 +19,7 @@
   async function onDeletePost(post: Post, event: MouseEvent) {
     preventBubbling(event);
     const confirmInstance = confirm.open({
-      description: `Delete “${post.title}”? This cannot be undone.`,
+      description: `Delete "${post.title}"? This cannot be undone.`,
       acceptButton: 'Delete',
     });
     const confirmed = await confirmInstance.result;

@@ -20,7 +20,7 @@ export function sanitizePostHtml(dirty: string): string {
       '*': ['class', 'style'],
       a: ['href', 'name', 'target', 'rel', 'class', 'style'],
       img: ['src', 'alt', 'title', 'class', 'style', 'width', 'height', 'data-image-id'],
-      div: ['data-carousel', 'data-image-ids', 'class', 'style'],
+      div: ['data-carousel', 'data-carousel-slot', 'data-image-ids', 'class', 'style'],
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     allowProtocolRelative: false,

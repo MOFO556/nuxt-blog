@@ -13,7 +13,7 @@ function basePost(overrides: Partial<Post> = {}): Post {
     url: '',
     title: 'Test post',
     content: 'legacy plain content goes here xx',
-    mode: 'legacy',
+    mode: PostMode.Legacy,
     contentHtml: undefined,
     description: undefined,
     excerpt: null,
@@ -32,7 +32,7 @@ describe('posts-detail', () => {
     const wrapper = await mountSuspended(PostsDetail, {
       props: {
         post: basePost({
-          mode: 'formatted',
+          mode: PostMode.Formatted,
           content: '{}',
           contentHtml: '<p>Hello formatted</p>',
           attachments: [
@@ -70,5 +70,45 @@ describe('posts-detail', () => {
     expect(wrapper.find('.formatted-body').html()).toContain('Hello formatted')
     expect(wrapper.find('.comments').exists()).toBe(true)
     expect(wrapper.find('.legacy-attachments').exists()).toBe(false)
+  })
+
+  it('uses formatted body for formatted posts even when contentHtml is empty', async () => {
+    const wrapper = await mountSuspended(PostsDetail, {
+      props: {
+        post: basePost({
+          mode: PostMode.Formatted,
+          content: '{"type":"doc","content":[]}',
+          contentHtml: '',
+        }),
+        basePath: '/posts',
+        backPath: '/posts',
+      },
+      global: {
+        stubs: {
+          UBlogPost: {
+            props: ['title', 'description'],
+            template: `
+              <div>
+                <h1>{{ title }}</h1>
+                <slot name="badge" />
+                <div class="desc-slot"><slot name="description" /></div>
+              </div>
+            `,
+          },
+          PostsAttachments: { template: '<div class="legacy-attachments" />' },
+          PostsComments: { template: '<div class="comments">comments</div>' },
+          PostsNavigation: { template: '<div class="nav" />' },
+          PostsTags: { template: '<div />' },
+          PostsFormattedBody: {
+            props: ['contentHtml', 'attachments'],
+            template: `<div class="formatted-body" data-html="empty" />`,
+          },
+        },
+      },
+    })
+
+    expect(wrapper.find('.desc-slot .formatted-body').exists()).toBe(true)
+    expect(wrapper.find('.post-legacy-body').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('{"type":"doc"')
   })
 })

@@ -2,6 +2,7 @@ import { Post, postAttachments, posts, postTags, tags } from '~~/server/database
 import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
 import { postInsertSchema } from '~~/server/database/posts.validators';
 import { requireAuth } from '~~/server/utils/auth';
+import { assertUserMayAttachPostImages } from '~~/server/utils/assertUserMayAttachPostImages';
 import { inArray } from 'drizzle-orm';
 import { slugify } from '~~/shared/utils/slugify';
 import { sanitizePostHtml } from '~~/shared/utils/sanitizePostHtml';
@@ -56,21 +57,20 @@ export default defineEventHandler(async (event) => {
       }
       throw error;
     }
-    try {
-      if (images?.length && !!created?.id) {
-        const postCoverId = images.findIndex(i => i.postCover === true);
-        tx.insert(postAttachments)
-          .values(images.map((i: { postCover: boolean, id: number }, index: number) => ({          
-            postId: created!.id,
-            imageId: i.id,
-            postCover: postCoverId === -1
-              ? (mode === PostMode.Legacy && index === 0)
-              : postCoverId === index,
-          }))).run();
-        }
-    }
-    catch (error: unknown) {
-      throw error;
+    if (images?.length && !!created?.id) {
+      assertUserMayAttachPostImages(tx, {
+        userId,
+        imageIds: images.map(i => i.id),
+      });
+      const postCoverId = images.findIndex(i => i.postCover === true);
+      tx.insert(postAttachments)
+        .values(images.map((i: { postCover: boolean, id: number }, index: number) => ({
+          postId: created!.id,
+          imageId: i.id,
+          postCover: postCoverId === -1
+            ? (mode === PostMode.Legacy && index === 0)
+            : postCoverId === index,
+        }))).run();
     }
     const incomingTags = tagNames ?? [];
     if (incomingTags.length && created?.id) {
@@ -89,6 +89,10 @@ export default defineEventHandler(async (event) => {
           .onConflictDoNothing().run();
     }
   });
+  if (!!created?.id)
+    indexPostById(created!.id)
+      .catch((err) => console.warn('[assistant] index after create failed', err));
+    
   setResponseStatus(event, 201);
   return created;
 })

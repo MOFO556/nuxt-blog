@@ -8,5 +8,6 @@ export * from "./images";
 export * from "./comments";
 export * from "./commentsAttachment";
 export * from "./postsAttachment";
+export * from "./assistant";
 export * from "./relations";
 

@@ -12,6 +12,12 @@ describe('sanitizePostHtml', () => {
     expect(sanitizePostHtml(html)).toBe(html)
   })
 
+  it('keeps data-carousel-slot on carousel markers', () => {
+    const html = '<div data-carousel="true" data-carousel-slot="gallery-1" data-image-ids="1,2" class="post-carousel-marker">&nbsp;</div>'
+    expect(sanitizePostHtml(html)).toContain('data-carousel-slot="gallery-1"')
+    expect(sanitizePostHtml(html)).toContain('data-image-ids="1,2"')
+  })
+
   it('strips javascript URLs from links', () => {
     const dirty = '<a href="javascript:alert(1)">Click</a>'
     expect(sanitizePostHtml(dirty)).toBe('<a>Click</a>')

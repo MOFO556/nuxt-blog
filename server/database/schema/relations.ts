@@ -8,12 +8,14 @@ import { comments } from './comments';
 import { commentAttachments } from './commentsAttachment';
 import { postAttachments } from './postsAttachment';
 import { postTags, tags } from './tags';
+import { assistantMessages, assistantThreads, postChunks } from './assistant';
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   posts: many(posts),
   comments: many(comments),
   credentials: many(credentials),
   sessions: many(sessions),
+  assistantThreads: many(assistantThreads),
   avatar: one(images, {
     fields: [users.avatar],
     references: [images.id]
@@ -36,13 +38,18 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   comments: many(comments),
   attachments: many(postAttachments),
   postTags: many(postTags),
+  chunks: many(postChunks),
 }));
 
-export const imagesRelations = relations(images, ({ many }) => ({
+export const imagesRelations = relations(images, ({ many, one }) => ({
   comments: many(comments),
   commentAttachments: many(commentAttachments),
   postAttachments: many(postAttachments),
-  users: many(users)
+  users: many(users),
+  uploader: one(users, {
+    fields: [images.uploadedBy],
+    references: [users.id],
+  }),
 }));
 
 export const commentsRelations = relations(comments, ({one, many}) => ({
@@ -109,4 +116,26 @@ export const postTagsRelations = relations(postTags, ({ one }) => ({
 
 export const tagsRelations = relations(tags, ({ many }) => ({
   postTags: many(postTags),
+}));
+
+export const assistantThreadsRelations = relations(assistantThreads, ({ one, many }) => ({
+  user: one(users, {
+    fields: [assistantThreads.userId],
+    references: [users.id],
+  }),
+  messages: many(assistantMessages),
+}));
+
+export const assistantMessagesRelations = relations(assistantMessages, ({ one }) => ({
+  thread: one(assistantThreads, {
+    fields: [assistantMessages.threadId],
+    references: [assistantThreads.id],
+  }),
+}));
+
+export const postChunksRelations = relations(postChunks, ({ one }) => ({
+  post: one(posts, {
+    fields: [postChunks.postId],
+    references: [posts.id],
+  }),
 }));

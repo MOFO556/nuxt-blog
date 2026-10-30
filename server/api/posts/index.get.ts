@@ -29,6 +29,10 @@ export default defineEventHandler(async (event) => {
       sql`lower(coalesce(${posts.description}, '')) like ${needle}`,
       sql`lower(coalesce(${posts.excerpt}, '')) like ${needle}`,
       and(eq(posts.mode, PostMode.Legacy), sql`lower(${posts.content}) like ${needle}`),
+      and(
+        eq(posts.mode, PostMode.Formatted),
+        sql`lower(coalesce(${posts.contentHtml}, '')) like ${needle}`,
+      ),
     ));
   }
   if (from)

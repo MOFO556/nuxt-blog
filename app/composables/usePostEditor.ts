@@ -1,4 +1,13 @@
 import type { PostEditorEmit, PostEditorShell } from '~/types/posts';
+import {
+  carouselSlotMarker,
+  DEFAULT_CAROUSEL_SLOT,
+  escapeHtmlAttr,
+  fillCarouselSlotInHtml,
+  mergeImageIds,
+  placeCarouselImagesInHtml,
+  sanitizeCarouselSlot,
+} from '~~/shared/assistant/carouselSlots';
 import { normalizeHtmlStyles } from '~~/shared/utils/normalizeHtmlStyles';
 import { buildPostEditorToolbarItems } from '~/utils/postEditorToolbar';
 
@@ -17,7 +26,7 @@ export function usePostEditor(
     set: (html: string) => {
       if (lockAuthoredHtml.value)
         return;
-      
+
       contentHtml.value = html;
       syncJsonFromEditor();
     },
@@ -34,7 +43,7 @@ export function usePostEditor(
     const ed = editorRef.value?.editor;
     if (!ed)
       return;
-    
+
     contentJson.value = JSON.stringify(ed.getJSON());
   }
 
@@ -42,7 +51,7 @@ export function usePostEditor(
     const ed = editorRef.value?.editor;
     if (!ed)
       return;
-    
+
     ed.commands.setContent(html, { contentType: 'html', emitUpdate: false });
     syncJsonFromEditor();
   }
@@ -95,8 +104,18 @@ export function usePostEditor(
     syncJsonFromEditor();
   }
 
-  function insertCarousel(imageIds: Array<string | number>) {
-    const ids = imageIds.join(',');
+  function prependImage(src: string, imageId: string | number) {
+    const snippet = `<p><img src="${src}" alt="${String(imageId)}" data-image-id="${String(imageId)}" /></p>`;
+    const rest = (contentHtml.value || '').replace(/^\s*<p><\/p>\s*/i, '');
+    contentHtml.value = `${snippet}${rest || '<p></p>'}`;
+    lockAuthoredHtml.value = true;
+    refreshTipTapPreview(contentHtml.value);
+  }
+
+  function insertCarousel(imageIds: (string | number)[], slot?: string | null) {
+    const ids = escapeHtmlAttr(imageIds.map(String).join(','));
+    const resolvedSlot = sanitizeCarouselSlot(slot?.trim() || DEFAULT_CAROUSEL_SLOT);
+    const slotAttr = ` data-carousel-slot="${resolvedSlot}"`;
     const html = contentHtml.value || '';
     const keepAuthored = lockAuthoredHtml.value
       || /class=["'][^"']+["']/.test(html)
@@ -104,7 +123,7 @@ export function usePostEditor(
 
     if (keepAuthored) {
       appendToAuthoredHtml(
-        `<div data-carousel="true" data-image-ids="${ids}" class="post-carousel-marker">&nbsp;</div>`,
+        `<div data-carousel="true"${slotAttr} data-image-ids="${ids}" class="post-carousel-marker">&nbsp;</div>`,
       );
       return;
     }
@@ -112,10 +131,88 @@ export function usePostEditor(
     const ed = editorRef.value?.editor;
     ed?.chain().focus().insertContent({
       type: 'carousel',
-      attrs: { imageIds },
+      attrs: {
+        imageIds,
+        carouselSlot: resolvedSlot,
+      },
     }).run();
     contentHtml.value = ed?.getHTML() ?? contentHtml.value;
     syncJsonFromEditor();
+  }
+
+  function fillCarouselSlot(slot: string, imageIds: (string | number)[]) {
+    const safeSlot = sanitizeCarouselSlot(slot);
+    if (!slot.trim() || imageIds.length === 0)
+      return false;
+
+    const ed = editorRef.value?.editor;
+    if (ed) {
+      let targetPos: number | null = null;
+      let targetAttrs: Record<string, unknown> | null = null;
+      ed.state.doc.descendants((node, pos) => {
+        if (targetPos !== null)
+          return false;
+        if (node.type.name !== 'carousel')
+          return undefined;
+        const nodeSlot = typeof node.attrs.carouselSlot === 'string'
+          ? node.attrs.carouselSlot.trim()
+          : '';
+        if (nodeSlot !== safeSlot)
+          return undefined;
+        const existing = Array.isArray(node.attrs.imageIds)
+          ? node.attrs.imageIds
+          : [];
+        targetPos = pos;
+        targetAttrs = {
+          ...node.attrs,
+          imageIds: mergeImageIds(existing, imageIds),
+          carouselSlot: safeSlot,
+        };
+        return false;
+      });
+      if (targetPos !== null && targetAttrs) {
+        ed.view.dispatch(ed.state.tr.setNodeMarkup(targetPos, undefined, targetAttrs));
+        contentHtml.value = ed.getHTML();
+        syncJsonFromEditor();
+        return true;
+      }
+    }
+
+    let next = fillCarouselSlotInHtml(contentHtml.value || '', safeSlot, imageIds);
+    if (!next) {
+      const withMarker = `${contentHtml.value || ''}${carouselSlotMarker(safeSlot)}`;
+      next = fillCarouselSlotInHtml(withMarker, safeSlot, imageIds);
+    }
+    if (!next)
+      return false;
+
+    contentHtml.value = next;
+    lockAuthoredHtml.value = true;
+    refreshTipTapPreview(next);
+    return true;
+  }
+
+  function fillCarouselSlots(
+    slots: { slot: string; imageIds: (string | number)[] }[],
+  ) {
+    if (!slots.length)
+      return;
+
+    const authored = contentHtml.value || '';
+    const source = /data-carousel/i.test(authored)
+      ? authored
+      : (editorRef.value?.editor?.getHTML() ?? authored);
+    const next = placeCarouselImagesInHtml(source, slots);
+
+    if (next !== source) {
+      contentHtml.value = next;
+      lockAuthoredHtml.value = true;
+      refreshTipTapPreview(next);
+      return;
+    }
+
+    for (const { slot, imageIds } of slots)
+      fillCarouselSlot(slot, imageIds);
   }
 
   const editorProps = {
@@ -131,6 +228,22 @@ export function usePostEditor(
     },
   };
 
+  function setHtmlContent(html: string, options?: { lockAuthored?: boolean }): boolean {
+    const next = html.trim() ? html : '<p></p>';
+    const lockAuthored = Boolean(options?.lockAuthored);
+    lockAuthoredHtml.value = lockAuthored;
+    contentHtml.value = next;
+
+    const ed = editorRef.value?.editor;
+    if (!ed)
+      return false;
+
+    refreshTipTapPreview(next);
+    if (lockAuthored)
+      contentHtml.value = next;
+    return true;
+  }
+
   return {
     showSource,
     sourceHtml,
@@ -142,6 +255,10 @@ export function usePostEditor(
     syncJsonFromEditor,
     applySourceHtml,
     insertImageAtCursor,
+    prependImage,
     insertCarousel,
+    fillCarouselSlot,
+    fillCarouselSlots,
+    setHtmlContent,
   };
 }

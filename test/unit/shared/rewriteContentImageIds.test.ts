@@ -34,7 +34,7 @@ describe('rewriteContentImageIds', () => {
     )
   })
 
-  it('does not rewrite unrelated TipTap text nodes that match a temp id', () => {
+  it('does not rewrite unrelated TipTap text or HTML body text that match a temp id', () => {
     const tempId = 'client:abc-123'
     const content = JSON.stringify({
       type: 'doc',
@@ -57,6 +57,7 @@ describe('rewriteContentImageIds', () => {
         content: [{ type: 'text', text: tempId }],
       }],
     })
+    expect(result.contentHtml).toBe(`<p>${tempId}</p>`)
   })
 
   it('rewrites image attrs and blob src to durable paths', () => {
@@ -89,5 +90,17 @@ describe('rewriteContentImageIds', () => {
     expect(result.contentHtml).toBe(
       '<img src="/images/photo.webp" alt="42" data-image-id="42">',
     )
+  })
+
+  it('keeps original content and still rewrites HTML when content is not JSON', () => {
+    const tempId = 'client:img-1'
+    const result = rewriteContentImageIds({
+      content: 'not-json-plain-text',
+      contentHtml: `<p data-image-id="${tempId}">hi</p>`,
+      idMap: { [tempId]: 7 },
+    })
+
+    expect(result.content).toBe('not-json-plain-text')
+    expect(result.contentHtml).toBe('<p data-image-id="7">hi</p>')
   })
 })

@@ -26,12 +26,20 @@
     syncJsonFromEditor,
     applySourceHtml,
     insertImageAtCursor,
+    prependImage,
     insertCarousel,
+    fillCarouselSlot,
+    fillCarouselSlots,
+    setHtmlContent,
   } = usePostEditor(contentJson, contentHtml, emit);
 
   defineExpose({
     insertImageAtCursor,
+    prependImage,
     insertCarousel,
+    fillCarouselSlot,
+    fillCarouselSlots,
+    setHtmlContent,
     editor: computed(() => editorRef.value?.editor),
   });
 </script>
@@ -41,6 +49,7 @@
     <div v-show="!showSource">
       <UEditor ref="editorRef"
         v-model="htmlModel"
+        class="w-full min-h-40"
         content-type="html"
         :image="false"
         :mention="false"
@@ -50,7 +59,6 @@
         :extensions="[
           HtmlDivExtension, ...styledHtmlNodeExtensions, PostImageExtension, CarouselExtension
         ]"
-        class="w-full min-h-40"
         @update:model-value="syncJsonFromEditor">
         <template #default="{ editor, handlers }">
           <UEditorToolbar class="mb-2 flex flex-wrap gap-1"

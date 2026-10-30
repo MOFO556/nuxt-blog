@@ -6,14 +6,21 @@
     contentHtml: string;
     attachments: PostImageMeta[];
     canEdit?: boolean;
+    postId?: number;
   }>();
 
-  const parts = computed(() =>
-    parseFormattedBody(
+  type BodyPart =
+    | { type: 'html'; html: string }
+    | { type: 'carousel'; items: PostImageMeta[] };
+
+  const parts = computed((): BodyPart[] => {
+    const source = props.attachments ?? [];
+    const parsed = parseFormattedBody(
       props.contentHtml,
-      (props.attachments ?? [])
-        .filter((a): a is PostImageMeta & { id: number; path: string } =>
-          typeof a.id === 'number' && typeof a.path === 'string')
+      source
+        .filter((a): a is PostImageMeta & { id: number | string; path: string } =>
+          (typeof a.id === 'number' || typeof a.id === 'string')
+          && typeof a.path === 'string')
         .map(a => ({
           id: a.id,
           path: a.path,
@@ -21,18 +28,19 @@
           postCover: a.postCover,
           description: a.description ?? undefined,
         })),
-    ),
-  );
+    );
 
-  function toPostImages(items: { id: number; path: string; name?: string; postCover?: boolean; description?: string }[]): PostImageMeta[] {
-    return items.map(i => ({
-      id: i.id,
-      path: i.path,
-      name: i.name,
-      postCover: i.postCover,
-      description: i.description,
-    }));
-  }
+    return parsed.map((part): BodyPart => {
+      if (part.type === 'html')
+        return part;
+
+      const items = part.items
+        .map(item => source.find(a => a.id === item.id || String(a.id) === String(item.id)))
+        .filter((a): a is PostImageMeta => a !== undefined);
+
+      return { type: 'carousel', items };
+    });
+  });
 </script>
 
 <template>
@@ -40,8 +48,10 @@
     <template v-for="(part, index) in parts" :key="index">
       <div v-if="part.type === 'html' && part.html.trim()" v-html="part.html" />
       <posts-attachments v-else-if="part.type === 'carousel' && part.items.length"
-        :attachments="toPostImages(part.items)"
-        :can-edit="!!canEdit"/>
+        :attachments="part.items"
+        :allAttachments="attachments"
+        :canEdit="!!canEdit"
+        :postId="postId"/>
       <p v-else-if="part.type === 'carousel'"
         class="text-muted text-sm italic">
         Carousel images unavailable

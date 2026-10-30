@@ -7,7 +7,7 @@
   });
   const route = useRoute();
   const { loggedIn } = useUserStore();
-  const filtersOpen = ref(false);
+  const { filtersOpen } = useAssistantOverlay();
 
   const filterParams = computed(() => {
     const { page: _page, ...rest } = route.query;

@@ -8,6 +8,8 @@
 
 **Signed-in users** can create and edit posts, comment (with optional images), upload images and descriptions, and use an office dashboard to edit profile, manage passkeys, and list/revoke sessions. Auth supports password and WebAuthn passkeys (or both).
 
+An **assistant** (Nuxt UI chat + AI SDK) guides visitors to posts/filters and helps authors draft content (live web search + blog RAG + propose/confirm form fills).
+
 UI: Tailwind CSS + Nuxt UI, mobile-first.
 
 ## Stack (short)
@@ -26,7 +28,7 @@ UI: Tailwind CSS + Nuxt UI, mobile-first.
 
 | Doc | When to open it |
 |-----|-----------------|
-| [modules.md](modules.md) | “What exists and where does it live?” |
+| [modules.md](modules.md) | "What exists and where does it live?" |
 | [db-map.md](db-map.md) | Tables, FKs, Drizzle relations |
 | [relations-map.md](relations-map.md) | Who calls whom across layers/modules |
 | [MAINTENANCE.md](MAINTENANCE.md) | Checklist when adding or changing a feature |

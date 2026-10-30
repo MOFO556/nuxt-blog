@@ -20,12 +20,13 @@ Feature modules and shared seams. Paths are from the repo root.
 
 ## Posts
 
-**Purpose:** Public list/detail/filters; create/edit/delete for owners; “my posts” in office. Posts are **legacy** (plain text + bottom carousel) or **formatted** (TipTap JSON + sanitized HTML, inline images/carousels, separate cover).
+**Purpose:** Public list/detail/filters; create/edit/delete for owners; "my posts" in office. Posts are **legacy** (plain text + bottom carousel) or **formatted** (TipTap JSON + sanitized HTML, inline images/carousels, separate cover).
 
 | Layer | Key paths |
 |-------|-----------|
 | Pages | `app/pages/posts/index.vue`, `[id].vue`, `tag/[slug].vue`, `author/[login].vue`; office `app/pages/office/posts/**` |
 | Components | `app/components/posts/*` (list, detail, form, editor, formatted-body, filters, tags, navigation, attachments); office list `app/components/office/posts.vue` (edit/delete actions) |
+| Composables / utils | `usePostForm`, `usePostFormAssistantBridge`, `usePendingTipTapHtmlSync`; `app/utils/postFormAssistant.ts`, `postEditorContent.ts`, `postUploadIds.ts`, `postContentMode.ts` |
 | Repository | `app/repository/posts.ts` → `$api.posts` |
 | Store | `app/stores/posts.store.ts` (list cache + next/prev ids) |
 | Composables | `useUserPostFetch` (owner middleware / office detail) |
@@ -63,7 +64,8 @@ API currently allows only `item === 'post'` even though the schema supports comm
 | API | `server/api/images/[item]/[id].{get,post}.ts`, `avatar.post.ts` |
 | Routes | `server/routes/images/[...pathname].get.ts`, `_img/[...pathname].get.ts` |
 | Provider | `server/providers/nuxtHubBlobIpx.ts` |
-| Schema | `Image`, attachment join tables |
+| Schema | `Image` (`uploaded_by`), attachment join tables |
+| Utils | `server/utils/assertUserMayAttachPostImages.ts` (posts + comments) |
 | Tasks | `cleanup:orphan-images` |
 
 ## Tags
@@ -78,6 +80,22 @@ API currently allows only `item === 'post'` even though the schema supports comm
 | API | `server/api/tags/index.get.ts`, `popular.get.ts` |
 | Schema | `Tag`, `PostTag` |
 | Tasks | `cleanup:tags` |
+
+## Assistant
+
+**Purpose:** In-app AI guide (navigate/filter/find posts via hybrid RAG + structured tools) and post editor helper (live `search_web` for recent data, propose/confirm field patches + Unsplash staging). Nuxt UI Chat + Vercel AI SDK; OpenAI-compatible providers via env.
+
+| Layer | Key paths |
+|-------|-----------|
+| UI | `app/components/assistant/*` (fab, panel, proposals); layouts mount fab/panel; docked panel on office create/edit |
+| Store / composables | `app/stores/assistant.store.ts`, `useAssistantOverlay`, `useAssistantChat`, `useAssistantFormBridge`, `usePostFormAssistantBridge` (post form staging/patch bridge) |
+| Repository | `app/repository/assistant.ts` → `$api.assistant` |
+| API | `server/api/assistant/chat.post.ts`, `server/api/assistant/threads/*` |
+| Schema | `AssistantThread`, `AssistantMessage`, `PostChunk` (+ sqlite-vec `post_chunk_vec`) |
+| Utils | `server/utils/assistant/*` (provider, tools, webSearch, httpFetch, vectors, rate limit, threads, unsplash) |
+| Shared | `shared/assistant/formPatch.ts`, `navigation.ts`, `generateUUID.ts` |
+| Tasks | `assistant:reindex-posts` |
+| Note | Floating non-blocking popup on browse; full-height docked panel on create/edit |
 
 ## Office / dashboard
 

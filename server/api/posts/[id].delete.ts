@@ -28,5 +28,8 @@ export default defineEventHandler(async (event) => {
   if (!row)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
+  deletePostVectors(id)
+    .catch((err) => console.warn('[assistant] vector cleanup after delete failed', err));
+
   return row;
 })

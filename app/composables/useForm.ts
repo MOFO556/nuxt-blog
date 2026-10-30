@@ -191,7 +191,7 @@ export const useForm = <TFormData extends Record<string, unknown>, TApiRes exten
           ) {
             handleValidationErrors(err.data.data as ValidationError[])
           }
-          return [] as Array<Record<string, unknown> | undefined>;
+          return [];
         });
 
         uploadedFiles = uploadResults

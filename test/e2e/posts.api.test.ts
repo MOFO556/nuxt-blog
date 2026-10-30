@@ -132,6 +132,31 @@ describe('posts API', async () => {
     expect(updated.mode).toBe('legacy')
   })
 
+  it('rejects oversized content on a legacy Post even when mode is omitted', async () => {
+    const { token } = await registerAndToken()
+    const created = await $fetch<{ id: number }>(
+      '/api/posts',
+      {
+        method: 'POST',
+        body: buildPostPayload({
+          title: 'Legacy size guard',
+          content: 'y'.repeat(40),
+        }),
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    )
+
+    await expect(
+      $fetch(`/api/posts/${created.id}`, {
+        method: 'PUT',
+        body: { content: 'x'.repeat(5001) },
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 422,
+    })
+  })
+
   it('lists formatted Posts using description and finds them via q on excerpt fields', async () => {
     const { token } = await registerAndToken()
     const unique = `zebra-${randomUUID().slice(0, 8)}`
@@ -158,5 +183,31 @@ describe('posts API', async () => {
     expect(hit).toBeTruthy()
     expect(hit?.description).toBe(unique)
     expect(hit?.excerpt).toBe(unique)
+  })
+
+  it('finds formatted Posts via q on deep contentHtml beyond the excerpt window', async () => {
+    const { token } = await registerAndToken()
+    const unique = `deep-body-${randomUUID().slice(0, 8)}`
+    const created = await $fetch<{ id: number }>(
+      '/api/posts',
+      {
+        method: 'POST',
+        body: {
+          title: 'Deep body search title',
+          mode: 'formatted',
+          content: JSON.stringify({ type: 'doc', content: [] }),
+          contentHtml: `<p>${'x'.repeat(250)} ${unique}</p>`,
+          description: 'short teaser only',
+        },
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    )
+
+    const listed = await $fetch<{ data: Array<{ id: number }> }>(
+      '/api/posts',
+      { query: { q: unique } },
+    )
+
+    expect(listed.data.some(p => p.id === created.id)).toBe(true)
   })
 })

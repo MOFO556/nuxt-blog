@@ -1,8 +1,9 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
-import { commentAttachments, comments } from '~~/server/database/schema';
+import { commentAttachments, comments, images } from '~~/server/database/schema';
 import { commentInsertSchema } from '~~/server/database/comments.validators';
+import { assertUserMayAttachPostImages } from '~~/server/utils/assertUserMayAttachPostImages';
 import { requireAuth } from '~~/server/utils/auth';
 import { broadcast } from '~~/server/utils/broadcast';
 
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const { id: postId } = await getValidatedRouterParams(event, paramsSchema.parse);
   const userId = event.context.user.id;
   const item = getRouterParam(event, 'item');
-  const { text, images, parentId } = await useSafeReadValidateBody(event, commentInsertSchema);
+  const { text, images: imageInputs, parentId } = await useSafeReadValidateBody(event, commentInsertSchema);
 
   if (item !== 'post')
     throw createError({ statusCode: 400, statusMessage: 'Unsupported comment target' });
@@ -26,17 +27,68 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Parent comment belongs to another post' });
   }
 
+  const imageIds = imageInputs?.map(i => i.id) ?? [];
+
+  if (imageIds.length) {
+    assertUserMayAttachPostImages(useDb(), {
+      userId,
+      imageIds,
+    });
+  }
+
   let created;
+  let attachments: {
+      path: string;
+      description: string | null;
+      name: string;
+  }[] = [];
   try {
-    [created] = await useDb()
-      .insert(comments)
-      .values({
-        text: text ?? '',
-        postId,
-        userId,
-        parentId: parentId ?? null,
-      })
-      .returning();
+    created = await useDb().transaction((tx) => {
+      const row = tx
+        .insert(comments)
+        .values({
+          text: text ?? '',
+          postId,
+          userId,
+          parentId: parentId ?? null,
+        })
+        .returning()
+        .get();
+
+      if (imageIds.length && row?.id) {
+        tx.insert(commentAttachments)
+          .values(imageIds.map(imageId => ({
+            commentId: row.id,
+            imageId,
+          })))
+          .run();
+
+        const rows = tx
+          .select({
+            id: images.id,
+            path: images.path,
+            description: images.description,
+            name: images.name,
+          })
+          .from(images)
+          .where(inArray(images.id, imageIds))
+          .all();
+
+        const byId = new Map(rows.map(r => [r.id, r]));
+        attachments = imageIds.flatMap((imageId) => {
+          const image = byId.get(imageId);
+          if (!image)
+            return [];
+          return [{
+            path: image.path,
+            description: image.description,
+            name: image.name,
+          }];
+        });
+      }
+
+      return row;
+    });
   }
   catch (error: unknown) {
     const code = typeof error === 'object' && error && 'code' in error
@@ -48,19 +100,10 @@ export default defineEventHandler(async (event) => {
     throw error;
   }
 
-  if (images?.length && created?.id) {
-    await useDb()
-      .insert(commentAttachments)
-      .values(images.map(i => ({
-        commentId: created.id,
-        imageId: i.id,
-      })));
-  }
-
   const comment = {
     ...created,
     user: event.context.user,
-    attachments: [],
+    attachments,
     deletedAt: null,
   };
 

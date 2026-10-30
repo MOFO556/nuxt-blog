@@ -14,6 +14,6 @@
 <template>
   <posts-list class="mt-4"
     :params="params"
-    :empty-title="`No posts tagged “${slug}”`"
+    :empty-title='`No posts tagged "${slug}"`'
     empty-description="Try another tag or browse all posts" />
 </template>

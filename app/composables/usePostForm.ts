@@ -20,6 +20,7 @@ import {
   buildFormattedAttachmentPayload,
   buildLegacyAttachmentPayload,
   coverFilesFromUploadValue,
+  filterContentImagesReferencedInBody,
   newClientTempId,
   toStagedUploadFile,
   withClientTempId,
@@ -63,6 +64,11 @@ export async function usePostForm(props: PostFormProps) {
     { label: 'Legacy', value: PostMode.Legacy },
     { label: 'Formatted', value: PostMode.Formatted },
   ];
+
+  onMounted(() => {
+    if (images?.length)
+      loadExistingFiles(images);
+  });
 
   const { data: fetchedTags } = await useAsyncData(
     `all-tags-on-post-${id}-edit`,
@@ -218,12 +224,6 @@ export async function usePostForm(props: PostFormProps) {
     coverIndex.value = coverIdx >= 0 ? coverIdx : null;
   }
 
-  onMounted(() => {
-    if (images?.length)
-      loadExistingFiles(images);
-    
-  });
-
   function pickFiles(multiple: boolean): Promise<File[]> {
     return new Promise((resolve) => {
       const input = document.createElement('input');
@@ -308,6 +308,7 @@ export async function usePostForm(props: PostFormProps) {
     
     return buildFormattedAttachmentPayload({
       contentJson: form.value.content,
+      contentHtml: form.value.contentHtml,
       contentImages: form.value.contentImages,
       cover: form.value.cover[0],
     });
@@ -316,8 +317,17 @@ export async function usePostForm(props: PostFormProps) {
   function submitForm() {
     if (!isFormatted.value)
       setSelectedCover();
-    else
-      form.value.images = [...form.value.cover, ...form.value.contentImages];
+    else {
+      editorRef.value?.setHtmlContent(form.value.contentHtml || '', { lockAuthored: true });
+      form.value.images = [
+        ...form.value.cover,
+        ...filterContentImagesReferencedInBody({
+          contentJson: form.value.content,
+          contentHtml: form.value.contentHtml,
+          contentImages: form.value.contentImages,
+        }),
+      ];
+    }
 
     form.submit(
       async (data) => {

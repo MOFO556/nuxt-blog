@@ -23,6 +23,18 @@ const FORMATTED_CONTENT_MAX = 100_000;
 const LEGACY_CONTENT_MIN = 25;
 const LEGACY_CONTENT_MAX = 5000;
 
+function isTipTapDocJson(value: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return typeof parsed === 'object'
+      && parsed !== null
+      && (parsed as { type?: unknown }).type === 'doc';
+  }
+  catch {
+    return false;
+  }
+}
+
 const refinePostContentByMode = (
   data: {
     mode?: PostMode;
@@ -33,13 +45,15 @@ const refinePostContentByMode = (
 ) => {
   const mode = data.mode ?? PostMode.Legacy;
   if (mode === PostMode.Formatted) {
-    if (!data.contentHtml?.length)
+    const hasHtml = Boolean(data.contentHtml?.length);
+    if (!hasHtml) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Content HTML is required',
+        message: 'Provide content and contentHtml together',
         path: ['contentHtml'],
-      });      
-    else if (data.contentHtml.length > FORMATTED_CONTENT_MAX)
+      });
+    }
+    else if (data.contentHtml!.length > FORMATTED_CONTENT_MAX)
       ctx.addIssue({
         code: 'too_big',
         maximum: FORMATTED_CONTENT_MAX,
@@ -48,8 +62,14 @@ const refinePostContentByMode = (
         message: `Too big: expected string to have <=${FORMATTED_CONTENT_MAX} characters`,
         path: ['contentHtml'],
       });
-      
-    if (data.content.length > FORMATTED_CONTENT_MAX)
+
+    if (!isTipTapDocJson(data.content))
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Provide content and contentHtml together',
+        path: ['content'],
+      });
+    else if (data.content.length > FORMATTED_CONTENT_MAX)
       ctx.addIssue({
         code: 'too_big',
         maximum: FORMATTED_CONTENT_MAX,
@@ -58,7 +78,7 @@ const refinePostContentByMode = (
         message: `Too big: expected string to have <=${FORMATTED_CONTENT_MAX} characters`,
         path: ['content'],
       });
-      
+
     return;
   }
 
@@ -126,6 +146,15 @@ export const postPatchSchema = createUpdateSchema(posts, {
     }
 
     if (mode === PostMode.Formatted) {
+      const hasContent = data.content !== undefined;
+      const hasHtml = data.contentHtml !== undefined;
+      if (hasContent !== hasHtml) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Provide content and contentHtml together',
+          path: [hasContent ? 'contentHtml' : 'content'],
+        });
+      }
       if (data.contentHtml !== undefined) {
         if (!data.contentHtml.length)
           ctx.addIssue({
@@ -143,7 +172,66 @@ export const postPatchSchema = createUpdateSchema(posts, {
             path: ['contentHtml'],
           });
       }
-      if (data.content !== undefined && data.content.length > FORMATTED_CONTENT_MAX)
+      if (data.content !== undefined) {
+        if (!isTipTapDocJson(data.content))
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Provide content and contentHtml together',
+            path: ['content'],
+          });
+        else if (data.content.length > FORMATTED_CONTENT_MAX)
+          ctx.addIssue({
+            code: 'too_big',
+            maximum: FORMATTED_CONTENT_MAX,
+            origin: 'string',
+            inclusive: true,
+            message: `Too big: expected string to have <=${FORMATTED_CONTENT_MAX} characters`,
+            path: ['content'],
+          });
+      }
+      return;
+    }
+
+    if (data.contentHtml !== undefined) {
+      if (!data.contentHtml.length)
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Content HTML is required',
+          path: ['contentHtml'],
+        });
+      else if (data.contentHtml.length > FORMATTED_CONTENT_MAX)
+        ctx.addIssue({
+          code: 'too_big',
+          maximum: FORMATTED_CONTENT_MAX,
+          origin: 'string',
+          inclusive: true,
+          message: `Too big: expected string to have <=${FORMATTED_CONTENT_MAX} characters`,
+          path: ['contentHtml'],
+        });
+      if (data.content !== undefined) {
+        if (data.content.length > FORMATTED_CONTENT_MAX)
+          ctx.addIssue({
+            code: 'too_big',
+            maximum: FORMATTED_CONTENT_MAX,
+            origin: 'string',
+            inclusive: true,
+            message: `Too big: expected string to have <=${FORMATTED_CONTENT_MAX} characters`,
+            path: ['content'],
+          });
+        else if (data.content.length <= LEGACY_CONTENT_MAX)
+          refinePostContentByMode(
+            { mode: PostMode.Legacy, content: data.content },
+            ctx,
+          );
+      }
+      return;
+    }
+
+    if (data.content === undefined)
+      return;
+
+    if (data.content.length > LEGACY_CONTENT_MAX) {
+      if (data.content.length > FORMATTED_CONTENT_MAX)
         ctx.addIssue({
           code: 'too_big',
           maximum: FORMATTED_CONTENT_MAX,
@@ -155,18 +243,10 @@ export const postPatchSchema = createUpdateSchema(posts, {
       return;
     }
 
-    if (data.content !== undefined && data.contentHtml !== undefined) {
-      refinePostContentByMode(
-        { mode: PostMode.Formatted, content: data.content, contentHtml: data.contentHtml },
-        ctx,
-      );
-      return;
-    }
-    if (data.content !== undefined)
-      refinePostContentByMode(
-        { mode: PostMode.Legacy, content: data.content },
-        ctx,
-      );
+    refinePostContentByMode(
+      { mode: PostMode.Legacy, content: data.content },
+      ctx,
+    );
   });
 
 export type postInput = z.infer<typeof postInsertSchema>;

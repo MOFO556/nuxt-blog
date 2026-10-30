@@ -1,8 +1,12 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
+import {
+  useSafeReadValidateBody,
+  validateBodyWithSchema,
+} from '~~/server/composable/useSafeReadValidateBody';
 import { postAttachments, posts, postTags, tags } from '~~/server/database/schema';
 import { postPatchSchema } from '~~/server/database/posts.validators';
+import { assertUserMayAttachPostImages } from '~~/server/utils/assertUserMayAttachPostImages';
 import { slugify } from '~~/shared/utils/slugify';
 import { sanitizePostHtml } from '~~/shared/utils/sanitizePostHtml';
 import { buildPostExcerpt } from '~~/shared/utils/buildPostExcerpt';
@@ -35,6 +39,17 @@ export default defineEventHandler(async (event) => {
     if (post.userId !== userId)
       throw createError({ statusCode: 403, statusMessage: "Not allowed! Foreigner post" });
 
+    if (patch.content !== undefined || patch.contentHtml !== undefined) {
+      validateBodyWithSchema(
+        {
+          content: patch.content,
+          contentHtml: patch.contentHtml,
+          mode: post.mode,
+        },
+        postPatchSchema,
+      );
+    }
+
     const nextContent = patch.content ?? post.content;
     const nextDescription = patch.description !== undefined
       ? patch.description
@@ -43,7 +58,7 @@ export default defineEventHandler(async (event) => {
     let nextContentHtml = post.contentHtml;
     if (post.mode === PostMode.Formatted) {
       if (patch.contentHtml !== undefined)
-        nextContentHtml = sanitizePostHtml(patch.contentHtml);      
+        nextContentHtml = sanitizePostHtml(patch.contentHtml);
     }
     else
       nextContentHtml = null;
@@ -111,6 +126,12 @@ export default defineEventHandler(async (event) => {
     }
 
     if (images) {
+      if (images.length)
+        assertUserMayAttachPostImages(tx, {
+          userId,
+          imageIds: images.map(i => i.id),
+          postId: id,
+        });
       tx.delete(postAttachments).where(eq(postAttachments.postId, id)).run();
       if (images.length) {
         const postCoverId = images.findIndex(i => i.postCover === true);
@@ -128,6 +149,12 @@ export default defineEventHandler(async (event) => {
 
     return updated;
   });
+
+  if (updated?.id) {
+    void import('#server-utils/assistant/indexPostById')
+      .then(({ indexPostById }) => indexPostById(updated.id))
+      .catch((err) => console.warn('[assistant] index after update failed', err));
+  }
 
   return updated;
 })

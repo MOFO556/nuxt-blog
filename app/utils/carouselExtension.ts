@@ -1,14 +1,11 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import type { CommandProps } from '@tiptap/core';
-
-export type CarouselAttrs = {
-  imageIds: Array<string | number>;
-};
+import { sanitizeCarouselSlot } from '~~/shared/assistant/carouselSlots';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     carousel: {
-      insertCarousel: (imageIds: Array<string | number>) => ReturnType;
+      insertCarousel: (imageIds: (string | number)[]) => ReturnType;
     };
   }
 }
@@ -23,7 +20,7 @@ export const CarouselExtension = Node.create({
   addAttributes() {
     return {
       imageIds: {
-        default: [] as Array<string | number>,
+        default: [],
         parseHTML: (element: HTMLElement) => {
           const raw = element.getAttribute('data-image-ids') ?? '';
           return raw
@@ -36,18 +33,35 @@ export const CarouselExtension = Node.create({
             });
         },
         renderHTML: (attributes: Record<string, unknown>) => {
-          const imageIds = (attributes.imageIds as Array<string | number> | undefined) ?? [];
+          const imageIds = (attributes.imageIds as (string | number)[] | undefined) ?? [];
           return {
             'data-carousel': 'true',
             'data-image-ids': imageIds.join(','),
           };
         },
       },
+      carouselSlot: {
+        default: null as string | null,
+        keepOnSplit: true,
+        parseHTML: (element: HTMLElement) => {
+          const raw = element.getAttribute('data-carousel-slot');
+          return raw && raw.trim() ? sanitizeCarouselSlot(raw) : null;
+        },
+        renderHTML: (attributes: Record<string, unknown>) => {
+          const slot = attributes.carouselSlot;
+          if (typeof slot !== 'string' || !slot.trim())
+            return {};
+          return { 'data-carousel-slot': sanitizeCarouselSlot(slot) };
+        },
+      },
     };
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-carousel]' }];
+    return [
+      { tag: 'div[data-carousel][data-carousel-slot]' },
+      { tag: 'div[data-carousel]' },
+    ];
   },
 
   renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
@@ -64,7 +78,7 @@ export const CarouselExtension = Node.create({
   addCommands() {
     return {
       insertCarousel:
-        (imageIds: Array<string | number>) =>
+        (imageIds: (string | number)[]) =>
         ({ commands }: CommandProps) =>
           commands.insertContent({
             type: this.name,

@@ -1,6 +1,6 @@
 # Relations and cross-usage map
 
-How layers and feature modules call each other. There is no `services/` folder; “service” work lives in repositories (client), `server/utils` + `server/composable` (server), and Nitro tasks.
+How layers and feature modules call each other. There is no `services/` folder; "service" work lives in repositories (client), `server/utils` + `server/composable` (server), and Nitro tasks.
 
 ## Layer flow
 
@@ -34,6 +34,7 @@ Wired in [`app/plugins/fetch.ts`](../../app/plugins/fetch.ts) as `$api` + `$appF
 | [`comments.ts`](../../app/repository/comments.ts) | `GET/POST comments/post/:id`, `PUT/DELETE comments/:id` | comments UI, comment-form |
 | [`images.ts`](../../app/repository/images.ts) | `POST /images/posts|comments/:id`, `POST /api/images/avatar/` | post form, comment-form, avatar upload |
 | [`tags.ts`](../../app/repository/tags.ts) | `GET tags/` | post form + filters; prerender popular tags via raw SQL in `nuxt.config.ts` |
+| [`assistant.ts`](../../app/repository/assistant.ts) | `GET/POST/DELETE assistant/threads*` | assistant panel history; chat via `POST assistant/chat` |
 
 Stores updated from repositories: `posts` store (`addPosts` from list/my), `user` store (auth flows). Stores must not call APIs directly (logout is the exception: store → `$api.auth.revokeSession`).
 
@@ -61,7 +62,17 @@ Shared auth helpers: [`server/utils/auth.ts`](../../server/utils/auth.ts) (`requ
 | `GET /api/posts/:id` | posts, users | - |
 | `POST /api/posts/` | posts, tags, postTags, postAttachments | `requireAuth`, validators, `slugify`, `sanitizePostHtml`, `buildPostExcerpt` |
 | `PUT /api/posts/:id` | same | owner check, mode immutable, attachment replace when `images` sent, `sanitizePostHtml`, `buildPostExcerpt` |
-| `DELETE /api/posts/:id` | posts | `requireAuth` + owner check (403 if foreign) |
+| `DELETE /api/posts/:id` | posts | `requireAuth` + owner check (403 if foreign); async RAG vector cleanup |
+
+Post create/update also fire-and-forget `indexPostById` for RAG.
+
+### Assistant
+
+| Route | Auth | Tables / utils |
+|-------|------|----------------|
+| `POST /api/assistant/chat` | soft | guest rate limit; AI SDK stream; tools; optional thread persist |
+| `GET/POST /api/assistant/threads` | `requireAuth` | AssistantThread |
+| `GET/DELETE /api/assistant/threads/:id` | `requireAuth` | AssistantThread, AssistantMessage |
 
 ### Comments
 
@@ -75,9 +86,11 @@ Shared auth helpers: [`server/utils/auth.ts`](../../server/utils/auth.ts) (`requ
 
 | Route | Tables / storage | Utils |
 |-------|------------------|-------|
-| `POST /api/images/posts|comments/:id` | images, postAttachments / commentAttachments, posts, comments; hub blob | `requireAuth`, `broadcast` on comment description updates |
+| `POST /api/images/posts|comments/:id` | images (`uploaded_by`), postAttachments / commentAttachments, posts, comments; hub blob | `requireAuth`, `broadcast` on comment description updates |
 | `GET /api/images/posts|comments/:id` | attachment joins | - |
-| `POST /api/images/avatar` | images; hub blob | `requireAuth`; inserts Image; profile PATCH links avatar id |
+| `POST /api/images/avatar` | images (`uploaded_by` when session exists); hub blob | No auth required (register uploads before account); profile PATCH links avatar id |
+| `POST/PUT /api/posts` | posts, postAttachments | `assertUserMayAttachPostImages` before linking `images[].id` |
+| `POST /api/comments/post/:id`, `PUT /api/comments/:id` | comments, commentAttachments | `assertUserMayAttachPostImages` before linking `images[].id` (re-attach allowed via `commentId`) |
 
 Serving: [`server/routes/images/[...pathname].get.ts`](../../server/routes/images/[...pathname].get.ts) (blob), [`server/routes/_img/[...pathname].get.ts`](../../server/routes/_img/[...pathname].get.ts) (sharp resize), provider [`nuxtHubBlobIpx`](../../server/providers/nuxtHubBlobIpx.ts).
 
@@ -120,6 +133,7 @@ Client consumer: [`useRealtime`](../../app/composables/useRealTime.ts) in `comme
 | `db:migrate` | on boot via [`server/plugins/migrate.ts`](../../server/plugins/migrate.ts) | migrations |
 | `db:backup` | **not scheduled** - manual | SQLite file snapshot |
 | `db:seed` | **not scheduled** - manual  | seed data |
+| `assistant:reindex-posts` | **not scheduled** - manual | PostChunk + sqlite-vec backfill |
 
 ## Cross-module dependency graph (features)
 
@@ -132,6 +146,9 @@ flowchart TB
   Posts --> Users
   Posts --> Tags
   Posts --> Images
+  Assistant --> Posts
+  Assistant --> Tags
+  Assistant --> Users
   Comments --> Posts
   Comments --> Users
   Comments --> Images

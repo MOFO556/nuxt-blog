@@ -11,11 +11,11 @@ Nuxt 4 blog with SQLite (Drizzle), password + passkey auth, comments, image uplo
 
 ```bash
 pnpm install
-pnpm dev          # http://localhost:3000
+pnpm dev # http://localhost:3000
 ```
 
 ```bash
-pnpm build        # production / prerender build
-pnpm test:ci      # unit + nuxt (Docker default gate)
+pnpm build # production / prerender build
+pnpm test:ci # unit + nuxt (Docker default gate)
 ```
 
