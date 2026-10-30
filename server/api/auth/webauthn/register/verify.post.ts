@@ -3,6 +3,7 @@ import { and, eq, gt } from 'drizzle-orm';
 import { useLookUpIp } from '~~/server/composable/useLookUpIp';
 import { users, credentials, webauthnAttempts, images, Credentials } from '~~/server/database/schema';
 import { createSession } from '~~/server/utils/session';
+import { useWebAuthnExpectations } from '~~/server/utils/webauthn';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{
@@ -28,14 +29,21 @@ export default defineEventHandler(async (event) => {
     authMethod: 'passkey' | 'both';
   };
 
-  const cfg = useRuntimeConfig(event).webauthn;
-  const verification = await verifyRegistrationResponse({
-    response: body.response as any,
-    expectedChallenge: attempt.challenge,
-    expectedOrigin: cfg.origin,
-    expectedRPID: cfg.rpID,
-    requireUserVerification: false,
-  });
+  const { origin, rpID } = useWebAuthnExpectations();
+  let verification;
+  try {
+    verification = await verifyRegistrationResponse({
+      response: body.response as any,
+      expectedChallenge: attempt.challenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      requireUserVerification: false,
+    });
+  }
+  catch (err) {
+    const message = err instanceof Error && err.message ? err.message : 'Registration failed';
+    throw createError({ statusCode: 400, statusMessage: message });
+  }
 
   if (!verification.verified || !verification.registrationInfo)
     throw createError({ statusCode: 422, statusMessage: 'Registration failed' });
@@ -50,8 +58,10 @@ export default defineEventHandler(async (event) => {
   if (ip !== 'unknown') {
     try {
       const res = await useLookUpIp(ip);
-      city = res.city;
-      country = res.country;
+      if (res) {
+        city = res.city;
+        country = res.country;
+      }
     } catch (e) {
       console.error('Unable to locate ip info', e);
     }

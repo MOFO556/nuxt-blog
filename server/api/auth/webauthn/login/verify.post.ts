@@ -2,6 +2,7 @@ import { verifyAuthenticationResponse } from '@simplewebauthn/server'
 import { and, eq, gt, sql } from 'drizzle-orm';
 import { users, credentials, webauthnAttempts, images } from '~~/server/database/schema'
 import { createSession } from '~~/server/utils/session';
+import { useWebAuthnExpectations } from '~~/server/utils/webauthn';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ attemptId: string; response: unknown }>(event);
@@ -24,20 +25,27 @@ export default defineEventHandler(async (event) => {
   if (!credentialRow)
     throw createError({ statusCode: 422, statusMessage: 'Credential not found' });
 
-  const cfg = useRuntimeConfig(event).webauthn;
-  const verification = await verifyAuthenticationResponse({
-    response: body.response as any,
-    expectedChallenge: attempt.challenge,
-    expectedOrigin: cfg.origin,
-    expectedRPID: cfg.rpID,
-    credential: {
-      id: credentialRow.id,
-      publicKey: new Uint8Array(Buffer.from(credentialRow.publicKey, 'base64')),
-      counter: credentialRow.counter,
-      transports: credentialRow.transports as any,
-    },
-    requireUserVerification: false,
-  });
+  const { origin, rpID } = useWebAuthnExpectations();
+  let verification;
+  try {
+    verification = await verifyAuthenticationResponse({
+      response: body.response as any,
+      expectedChallenge: attempt.challenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      credential: {
+        id: credentialRow.id,
+        publicKey: new Uint8Array(Buffer.from(credentialRow.publicKey, 'base64')),
+        counter: credentialRow.counter,
+        transports: credentialRow.transports as any,
+      },
+      requireUserVerification: false,
+    });
+  }
+  catch (err) {
+    const message = err instanceof Error && err.message ? err.message : 'Authentication failed';
+    throw createError({ statusCode: 400, statusMessage: message });
+  }
 
   if (!verification.verified || !verification.authenticationInfo)
     throw createError({ statusCode: 422, statusMessage: 'Authentication failed' });

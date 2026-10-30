@@ -15,7 +15,7 @@ Feature modules and shared seams. Paths are from the repo root.
 | Middleware / plugins | `app/middleware/auth.global.ts`, `app/plugins/init-auth.ts`, `app/composables/useEnsureAuthChecked.ts` |
 | API | `server/api/auth/**` (login, register, check, profile, sessions, webauthn/*) |
 | Schema | `User`, `Credentials`, `Session`, `WebauthnAttempt` |
-| Utils | `server/utils/auth.ts`, `session.ts`, `uaparser.ts`; `server/composable/useLookUpIp.ts`; `server/config/auth.ts`; `shared/auth.ts` |
+| Utils | `server/utils/auth.ts`, `session.ts`, `webauthn.ts`, `uaparser.ts`; `server/composable/useLookUpIp.ts`; `server/config/auth.ts`; `shared/auth.ts` |
 | Client cookie | `app/utils/auth-cookie.ts`, `fetch-headers.ts` |
 
 ## Posts

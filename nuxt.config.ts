@@ -266,11 +266,11 @@ export default defineNuxtConfig({
     assistantMaxSteps: process.env.ASSISTANT_MAX_STEPS || "",
     public: {
       API_URL: process.env.NUXT_PUBLIC_API_URL || "/api/",
+      appOrigin: process.env.NUXT_PUBLIC_APP_ORIGIN || "http://localhost:3000",
     },
     webauthn: {
       rpID: process.env.NUXT_WEBAUTHN_RP_ID || "localhost",
       rpName: process.env.NUXT_WEBAUTHN_RP_NAME || "MOFONuxt",
-      origin: process.env.NUXT_PUBLIC_APP_ORIGIN || "http://localhost:3000",
     },
   },
   routeRules: {

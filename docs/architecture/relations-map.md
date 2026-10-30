@@ -49,7 +49,7 @@ Stores updated from repositories: `posts` store (`addPosts` from list/my), `user
 | `GET /api/auth/check` | soft | users, sessions, images | `loadSession` / auth utils |
 | `PATCH /api/auth/profile` | `requireAuth` | users, images, credentials, sessions | bcrypt, validators |
 | `GET/DELETE /api/auth/sessions/*` | `requireAuth` | sessions | `broadcast` on revoke |
-| WebAuthn register/login/credentials | mix | users, credentials, webauthnAttempts, images, sessions | SimpleWebAuthn, `useLookUpIp`, `createSession`, `signToken`, `broadcast`, `uaparser` (credentials list) |
+| WebAuthn register/login/credentials | mix | users, credentials, webauthnAttempts, images, sessions | SimpleWebAuthn, `useWebAuthnExpectations`, `useLookUpIp`, `createSession`, `signToken`, `broadcast`, `uaparser` (credentials list) |
 
 Shared auth helpers: [`server/utils/auth.ts`](../../server/utils/auth.ts) (`requireAuth`, `signToken`, session touch + `x-auth-token`), [`server/utils/session.ts`](../../server/utils/session.ts) (`createSession` + geo via `useLookUpIp`), [`server/config/auth.ts`](../../server/config/auth.ts), [`shared/auth.ts`](../../shared/auth.ts) (lifetimes).
 

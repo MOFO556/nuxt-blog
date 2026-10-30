@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
 import { users, credentials, webauthnAttempts } from '~~/server/database/schema';
+import { useWebAuthnExpectations } from '~~/server/utils/webauthn';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -14,10 +15,10 @@ export default defineEventHandler(async (event) => {
     where: eq(credentials.userId, userId),
   });
 
-  const cfg = useRuntimeConfig(event).webauthn;
+  const { rpName, rpID } = useWebAuthnExpectations();
   const options = await generateRegistrationOptions({
-    rpName: cfg.rpName,
-    rpID: cfg.rpID,
+    rpName,
+    rpID,
     userName: user.login,
     userDisplayName: user.login,
     attestationType: 'none',

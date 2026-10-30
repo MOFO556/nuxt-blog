@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import { generateAuthenticationOptions } from '@simplewebauthn/server'
 import { users, credentials, webauthnAttempts } from '~~/server/database/schema'
+import { useWebAuthnExpectations } from '~~/server/utils/webauthn'
 
 export default defineEventHandler(async (event) => {
   const { login } = await readBody<{ login: string }>(event);
@@ -21,9 +22,9 @@ export default defineEventHandler(async (event) => {
   if (!creds.length)
     throw createError({ statusCode: 422, statusMessage: 'No passkeys registered' });
 
-  const cfg = useRuntimeConfig(event).webauthn;
+  const { rpID } = useWebAuthnExpectations();
   const options = await generateAuthenticationOptions({
-    rpID: cfg.rpID,
+    rpID,
     allowCredentials: creds.map(c => ({
       id: c.id,
       transports: c.transports as any,

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { users, webauthnAttempts } from '~~/server/database/schema';
 import { useSafeReadValidateBody } from '~~/server/composable/useSafeReadValidateBody';
 import { userInsertSchema } from '~~/server/database/users.validators';
+import { useWebAuthnExpectations } from '~~/server/utils/webauthn';
 
 export default defineEventHandler(async (event) => {
   const { login, password, avatar, authMethod} = await useSafeReadValidateBody(event, userInsertSchema);
@@ -22,10 +23,10 @@ export default defineEventHandler(async (event) => {
   if (existing)
     throw createError({ statusCode: 422, statusMessage: 'Invalid data' });
 
-  const cfg = useRuntimeConfig(event).webauthn
+  const { rpName, rpID } = useWebAuthnExpectations()
   const options = await generateRegistrationOptions({
-    rpName: cfg.rpName,
-    rpID: cfg.rpID,
+    rpName,
+    rpID,
     userName: login,
     userDisplayName: login,
     attestationType: 'none',
