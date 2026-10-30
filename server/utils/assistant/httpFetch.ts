@@ -2,8 +2,16 @@ import { execFile } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import {
+  chatRequestWantsStream,
+  forceChatCompletionNonStreaming,
+  openAiChatCompletionToSse,
+} from '#server-utils/assistant/openAiSse';
 
 const execFileAsync = promisify(execFile);
+
+const CHAT_FALLBACK_TIMEOUT_MS = 180_000;
+const DEFAULT_RESILIENT_FETCH_TIMEOUT_MS = 60_000;
 
 type HttpFetchInit = {
   method?: 'GET' | 'POST';
@@ -33,12 +41,15 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function readRetryAfterMs(headers: Headers, body: string): number | null {
-  const raw = headers.get('retry-after');
+export function readRetryAfterMs(headers: Headers, body: string): number | null {
+  const raw = headers.get('retry-after')?.trim();
   if (raw) {
-    const asInt = Number(raw);
-    if (Number.isFinite(asInt) && asInt >= 0)
-      return Math.min(Math.ceil(asInt * (asInt < 100 ? 1000 : 1)), 60_000);
+    const seconds = Number(raw);
+    if (Number.isFinite(seconds) && seconds >= 0)
+      return Math.min(Math.ceil(seconds * 1000), 60_000);
+    const at = Date.parse(raw);
+    if (Number.isFinite(at))
+      return Math.min(Math.max(0, at - Date.now()), 60_000);
   }
   const match = body.match(/try again in\s+(\d+(?:\.\d+)?)\s*s/i);
   if (match?.[1]) {
@@ -65,10 +76,16 @@ function isNetworkFetchError(err: unknown): boolean {
     || message.includes('enotfound');
 }
 
+function isCloudflareSecurityPolicyDenial(body: string): boolean {
+  return /access denied by security policy/i.test(body);
+}
+
 export function shouldRetryForbiddenViaPowerShell(status: number, body: string): boolean {
   if (status !== 403)
     return false;
   if (/<\s*html|<\s*head|403 Forbidden/i.test(body))
+    return true;
+  if (isCloudflareSecurityPolicyDenial(body))
     return true;
   const trimmed = body.trim();
   if (trimmed === 'Forbidden')
@@ -89,6 +106,84 @@ export function shouldRetryForbiddenViaPowerShell(status: number, body: string):
     /* not JSON */
   }
   return false;
+}
+
+export function resilientFetchTimeoutMs(url: string): number {
+  try {
+    const pathname = new URL(url).pathname.replace(/\/+$/, '');
+    if (/\/chat\/completions$/i.test(pathname))
+      return CHAT_FALLBACK_TIMEOUT_MS;
+  }
+  catch {
+    /* not an absolute URL */
+  }
+  return DEFAULT_RESILIENT_FETCH_TIMEOUT_MS;
+}
+
+export function synthesizeStreamedChatResponse(
+  wantsStream: boolean,
+  result: { ok: boolean; status: number; body: string },
+): { ok: boolean; status: number; body: string } {
+  if (!wantsStream || !result.ok)
+    return result;
+  const sse = openAiChatCompletionToSse(result.body);
+  if (sse == null)
+    return { ok: false, status: 502, body: result.body };
+  return { ok: true, status: result.status, body: sse };
+}
+
+async function fetchViaPowerShellResilient(
+  url: string,
+  init: Required<Pick<HttpFetchInit, 'method' | 'headers'>> & {
+    body?: string;
+    timeoutMs: number;
+  },
+): Promise<{ ok: boolean; status: number; body: string }> {
+  const wantsStream = chatRequestWantsStream(init.body);
+  const body = wantsStream && init.body
+    ? forceChatCompletionNonStreaming(init.body)
+    : init.body;
+  const timeoutMs = wantsStream
+    ? Math.max(init.timeoutMs, CHAT_FALLBACK_TIMEOUT_MS)
+    : init.timeoutMs;
+
+  if (wantsStream) {
+    console.warn(
+      '[assistant] PowerShell chat fallback using non-streaming completion (avoids SSE timeout)',
+      url,
+    );
+  }
+
+  let viaPs = await fetchTextViaPowerShell(url, {
+    method: init.method,
+    headers: init.headers,
+    body,
+    timeoutMs,
+  });
+  if (viaPs.status === 429) {
+    const waitMs = readRetryAfterMs(viaPs.headers, viaPs.body) ?? 7_000;
+    console.warn(`[assistant] PowerShell rate limited; waiting ${waitMs}ms`, url);
+    await sleep(waitMs);
+    viaPs = await fetchTextViaPowerShell(url, {
+      method: init.method,
+      headers: init.headers,
+      body,
+      timeoutMs,
+    });
+  }
+
+  const synthesized = synthesizeStreamedChatResponse(wantsStream, {
+    ok: viaPs.ok,
+    status: viaPs.status,
+    body: viaPs.body,
+  });
+  if (wantsStream && viaPs.ok && !synthesized.ok) {
+    console.warn(
+      '[assistant] PowerShell chat fallback returned a non-completion body',
+      url,
+    );
+  }
+  return synthesized;
 }
 
 /**
@@ -129,7 +224,12 @@ export async function fetchTextResilient(
       body = await res.text();
       if (res.status === 429 && canUsePowerShell) {
         await sleep(readRetryAfterMs(res.headers, body) ?? 7_000);
-        return await fetchTextViaPowerShell(url, { method, headers, body: init.body, timeoutMs });
+        return await fetchViaPowerShellResilient(url, {
+          method,
+          headers,
+          body: init.body,
+          timeoutMs,
+        });
       }
     }
 
@@ -138,14 +238,12 @@ export async function fetchTextResilient(
         '[assistant] Node fetch got Forbidden; retrying via PowerShell',
         url,
       );
-      let viaPs = await fetchTextViaPowerShell(url, { method, headers, body: init.body, timeoutMs });
-      if (viaPs.status === 429) {
-        const waitMs = readRetryAfterMs(new Headers(), viaPs.body) ?? 7_000;
-        console.warn(`[assistant] PowerShell rate limited; waiting ${waitMs}ms`, url);
-        await sleep(waitMs);
-        viaPs = await fetchTextViaPowerShell(url, { method, headers, body: init.body, timeoutMs });
-      }
-      return viaPs;
+      return await fetchViaPowerShellResilient(url, {
+        method,
+        headers,
+        body: init.body,
+        timeoutMs,
+      });
     }
     return { ok: res.ok, status: res.status, body };
   }
@@ -157,7 +255,12 @@ export async function fetchTextResilient(
       '[assistant] Node fetch failed; retrying via PowerShell',
       err instanceof Error ? (err.cause ?? err.message) : err,
     );
-    return await fetchTextViaPowerShell(url, { method, headers, body: init.body, timeoutMs });
+    return await fetchViaPowerShellResilient(url, {
+      method,
+      headers,
+      body: init.body,
+      timeoutMs,
+    });
   }
 }
 
@@ -197,10 +300,18 @@ export async function resilientFetch(
       throw new Error('resilientFetch only supports string/Uint8Array bodies');
   }
 
-  const result = await fetchTextResilient(url, { method, headers, body, timeoutMs: 60_000 });
+  const timeoutMs = resilientFetchTimeoutMs(url);
+  const result = await fetchTextResilient(url, { method, headers, body, timeoutMs });
+  if (!result.ok) {
+    const preview = result.body.replace(/\s+/g, ' ').trim().slice(0, 400);
+    console.warn(`[assistant] provider HTTP ${result.status}`, url, preview);
+  }
+  const contentType = result.body.trimStart().startsWith('data:')
+    ? 'text/event-stream; charset=utf-8'
+    : 'application/json';
   return new Response(result.body, {
     status: result.status,
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': contentType },
   });
 }
 
@@ -237,13 +348,50 @@ async function resolveHttpFetchScriptPath(): Promise<string> {
   return candidate;
 }
 
+type PowerShellHttpPayload = {
+  status: number;
+  body: string;
+  retryAfter?: string | null;
+};
+
+function isPowerShellHttpPayload(value: unknown): value is PowerShellHttpPayload {
+  if (typeof value !== 'object' || value === null)
+    return false;
+  if (!('status' in value) || typeof value.status !== 'number')
+    return false;
+  if (!('body' in value) || typeof value.body !== 'string')
+    return false;
+  if (!('retryAfter' in value) || value.retryAfter == null)
+    return true;
+  return typeof value.retryAfter === 'string';
+}
+
+export function parsePowerShellHttpPayload(payload: unknown): {
+  ok: boolean;
+  status: number;
+  body: string;
+  headers: Headers;
+} {
+  if (!isPowerShellHttpPayload(payload))
+    throw new Error('PowerShell HTTP fallback returned an unexpected payload');
+  const headers = new Headers();
+  if (payload.retryAfter)
+    headers.set('retry-after', payload.retryAfter.trim());
+  return {
+    ok: payload.status >= 200 && payload.status < 300,
+    status: payload.status,
+    body: payload.body,
+    headers,
+  };
+}
+
 async function fetchTextViaPowerShell(
   url: string,
   init: Required<Pick<HttpFetchInit, 'method' | 'headers'>> & {
     body?: string;
     timeoutMs: number;
   },
-): Promise<{ ok: boolean; status: number; body: string }> {
+): Promise<{ ok: boolean; status: number; body: string; headers: Headers }> {
   /**
    * Windows PowerShell 5.1 strips Authorization from Invoke-WebRequest -Headers.
    * HttpClient (in the .ps1) sends Bearer tokens and other auth headers correctly.
@@ -282,19 +430,5 @@ async function fetchTextViaPowerShell(
   );
 
   const decoded = Buffer.from(stdout.replace(/\s+/g, ''), 'base64').toString('utf8');
-  const parsed: unknown = JSON.parse(decoded);
-  if (!parsed
-    || typeof parsed !== 'object'
-    || typeof (parsed as { status?: unknown }).status !== 'number'
-    || typeof (parsed as { body?: unknown }).body !== 'string'
-  )
-    throw new Error('PowerShell HTTP fallback returned an unexpected payload');
-    
-  const status = (parsed as { status: number; body: string }).status;
-  const body = (parsed as { body: string }).body;
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    body,
-  };
+  return parsePowerShellHttpPayload(JSON.parse(decoded));
 }

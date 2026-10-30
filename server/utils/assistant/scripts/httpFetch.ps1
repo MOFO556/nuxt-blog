@@ -9,10 +9,22 @@
 # ASSISTANT_HTTP_CONTENT_TYPE - content type when body is set (default application/json)
 # ASSISTANT_HTTP_HEADERS_JSON - JSON object of extra headers (Authorization, Accept, …)
 #
-# Stdout: base64(UTF-8 JSON { status: number, body: string })
+# Stdout: base64(UTF-8 JSON { status: number, body: string, retryAfter?: string })
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Net.Http
+
+function Get-FirstHeaderValue([System.Net.Http.Headers.HttpHeaders]$headers, [string]$name) {
+  if (-not $headers) {
+    return $null
+  }
+  foreach ($pair in $headers) {
+    if ($pair.Key -ieq $name) {
+      return [string]($pair.Value | Select-Object -First 1)
+    }
+  }
+  return $null
+}
 
 $handler = [System.Net.Http.HttpClientHandler]::new()
 $client = [System.Net.Http.HttpClient]::new($handler)
@@ -47,9 +59,19 @@ if ($env:ASSISTANT_HTTP_HEADERS_JSON) {
 
 $res = $client.SendAsync($req).GetAwaiter().GetResult()
 $body = $res.Content.ReadAsStringAsync().GetAwaiter().GetResult()
-$payload = (@{
+$retryAfter = Get-FirstHeaderValue $res.Headers 'Retry-After'
+if (-not $retryAfter -and $res.Content) {
+  $retryAfter = Get-FirstHeaderValue $res.Content.Headers 'Retry-After'
+}
+
+$payload = @{
   status = [int]$res.StatusCode
   body = $body
-} | ConvertTo-Json -Compress -Depth 3)
-$bytes = [Text.Encoding]::UTF8.GetBytes($payload)
+}
+if ($retryAfter) {
+  $payload.retryAfter = $retryAfter
+}
+
+$json = $payload | ConvertTo-Json -Compress -Depth 5
+$bytes = [Text.Encoding]::UTF8.GetBytes($json)
 [Convert]::ToBase64String($bytes)
