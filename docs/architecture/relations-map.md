@@ -131,6 +131,7 @@ Client consumer: [`useRealtime`](../../app/composables/useRealTime.ts) in `comme
 | `cleanup:sessions` | every 10 min | sessions |
 | `cleanup:tags` | daily 04:00 | unused tags |
 | `db:migrate` | on boot via [`server/plugins/migrate.ts`](../../server/plugins/migrate.ts) | migrations |
+| _(boot)_ runtime env mirror | [`mirror-runtime-env.mjs`](../../server/utils/mirror-runtime-env.mjs) via [`docker-entrypoint.sh`](../../scripts/docker-entrypoint.sh) | copies every env name to `NUXT_*` before Nitro import |
 | `db:backup` | **not scheduled** - manual | SQLite file snapshot |
 | `db:seed` | **not scheduled** - manual  | seed data |
 | `assistant:reindex-posts` | **not scheduled** - manual | PostChunk + sqlite-vec backfill |

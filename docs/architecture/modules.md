@@ -123,6 +123,7 @@ API currently allows only `item === 'post'` even though the schema supports comm
 | Piece | Path | Notes |
 |-------|------|-------|
 | Migrate plugin | `server/plugins/migrate.ts` | Runs `db:migrate` on boot |
+| Runtime env mirror | `server/utils/mirror-runtime-env.mjs` via [`scripts/docker-entrypoint.sh`](../../scripts/docker-entrypoint.sh) | Copies every env name onto `NUXT_*` before Nitro import so `runtimeConfig` tracks env without an allow-list |
 | Log redact plugin | `server/plugins/redact-auth-logs.ts` | On `/api/auth*` errors, clears req body and redacts auth headers |
 | Tasks | `server/tasks/**` | See [relations-map.md](relations-map.md) |
 

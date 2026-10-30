@@ -10,4 +10,4 @@ mkdir -p "$(dirname "$DB_FILE")"
 exec litestream replicate \
   -config /etc/litestream.yml \
   -restore-if-db-not-exists \
-  -exec "node /app/.output/server/index.mjs"
+  -exec "node --import /app/server/utils/mirror-runtime-env.mjs /app/.output/server/index.mjs"

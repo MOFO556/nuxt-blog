@@ -63,6 +63,7 @@ COPY --from=build /app/.output ./.output
 COPY --from=build /app/server/database/migrations ./server/database/migrations
 COPY litestream.yml /etc/litestream.yml
 COPY scripts/docker-entrypoint.sh /entrypoint.sh
+COPY server/utils/mirror-runtime-env.mjs /app/server/utils/mirror-runtime-env.mjs
 
 RUN sed -i 's/\r$//' /entrypoint.sh \
   && chmod +x /entrypoint.sh \
