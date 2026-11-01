@@ -95,7 +95,35 @@ API currently allows only `item === 'post'` even though the schema supports comm
 | Utils | `server/utils/assistant/*` (provider, tools, webSearch, httpFetch, vectors, rate limit, threads, unsplash) |
 | Shared | `shared/assistant/formPatch.ts`, `navigation.ts`, `generateUUID.ts` |
 | Tasks | `assistant:reindex-posts` |
-| Note | Floating non-blocking popup on browse; full-height docked panel on create/edit |
+| Note | Floating non-blocking popup on browse; full-height docked panel on create/edit. The button, panel header, and assistant bubbles wear the **mascot** portrait. |
+
+## Mascot
+
+**Purpose:** Home-page greeting. Light and dark resolved color modes swap the figure. Scripted guide cues point at real controls. No API and no model call.
+
+| Layer | Key paths |
+|-------|-----------|
+| Page | `app/pages/index.vue` |
+| Components | `app/components/mascot/stage.client.vue`, `cue.vue`, `portrait.vue` |
+| Composable | `app/composables/useMascotTheme.ts`, `app/composables/useMascotStage.ts` |
+| Utils | `app/utils/mascot/*` (cues, pick, place, stage runtime) |
+| Layout marks | `data-mascot-hotspot` on nav items, the color-mode control in both layouts, and the assistant FAB |
+| Assets | `public/mascot/*`; authoring contract in `docs/mascot-assets.md` |
+| Depends on | Assistant overlay only to open the existing chat from a cue. Color mode for the theme. |
+
+## Runner
+
+**Purpose:** Guest-accessible 2D endless course (jump and duck) on its own route. Best score stays in the browser. The figure is the mascot model in side view; theme swaps `light.glb` and `dark.glb`. No API.
+
+| Layer | Key paths |
+|-------|-----------|
+| Page | `app/pages/runner.vue` |
+| Component | `app/components/runner/game.client.vue` |
+| Composable | `app/composables/useRunnerGame.ts` |
+| Utils | `app/utils/runner/*` (step, pose, props, course paint, game runtime) |
+| Figure | `public/mascot/light.glb`, `public/mascot/dark.glb` clips `Run` or `Walk`, `Jump`, and `Duck` held in the crouch |
+| Course props | `public/runner/stones.glb`, `public/runner/kunai.glb` |
+| Nav | `useNavigationItems` (guest, auth, inline, mobile) |
 
 ## Office / dashboard
 
@@ -159,7 +187,7 @@ API currently allows only `item === 'post'` even though the schema supports comm
 
 | Piece | Path |
 |-------|------|
-| Root / home | `app/pages/index.vue`, `app/app.vue` |
+| Root / home | `app/pages/index.vue` (mascot stage), `app/pages/runner.vue`, `app/app.vue` |
 | Default layout | `app/layouts/default.vue` |
 | Error page | `app/error.vue` |
 | Navigation | `useNavigationItems` in `app/composables/useNavigationItems.ts`|

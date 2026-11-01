@@ -156,6 +156,7 @@ flowchart TB
   Office --> Auth
   Office --> Posts
   Office --> Images
+  Mascot --> Assistant
   Realtime --> Comments
   Realtime --> Auth
   Tasks --> Images
@@ -163,6 +164,16 @@ flowchart TB
   Tasks --> Sessions
   Tasks --> WebauthnAttempts
 ```
+
+## Client-only experiences
+
+The mascot stage and the runner do not call the API and have no database tables.
+
+| Piece | Depends on |
+|-------|------------|
+| Mascot stage | Resolved color mode, `data-mascot-hotspot` nodes, Assistant overlay (`openChat` from a guide cue) |
+| Runner | Resolved color mode for the mascot model, `localStorage` key `runner-best` |
+| Assistant portrait | `public/mascot/portrait-*.png` on the FAB, panel header, and `UChatMessages` assistant avatar |
 
 ## App middleware / plugins
 

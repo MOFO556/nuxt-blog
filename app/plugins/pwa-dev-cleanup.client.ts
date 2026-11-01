@@ -5,7 +5,7 @@ export default defineNuxtPlugin(() => {
   if (!('serviceWorker' in navigator))
     return;
 
-  void navigator.serviceWorker.getRegistrations().then(async (regs) => {
+  navigator.serviceWorker.getRegistrations().then(async (regs) => {
     await Promise.all(regs.map(reg => reg.unregister()));
     if (!('caches' in window))
       return;

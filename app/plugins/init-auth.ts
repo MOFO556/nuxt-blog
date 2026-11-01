@@ -12,7 +12,7 @@ export default defineNuxtPlugin({
     }
 
     onNuxtReady(() => {
-      void ensureAuthChecked().then(() => nuxtApp.runWithContext(async () => {
+      ensureAuthChecked().then(() => nuxtApp.runWithContext(async () => {
         const route = router.currentRoute.value;
         if (userStore.loggedIn && route.matched.some(rec => rec.meta.guest)) {
           await navigateTo('/');

@@ -9,13 +9,22 @@ export const useNavigationItems = () => {
     to: '/posts',
     icon: 'i-lucide-book-open-check',
     active: route.path.startsWith('/posts'),
-    filterKeys: ['guest', 'auth', 'mobile', 'inline']
+    filterKeys: ['guest', 'auth', 'mobile', 'inline'],
+    'data-mascot-hotspot': 'posts',
+  }, {
+    label: 'Runner',
+    to: '/runner',
+    icon: 'i-lucide-footprints',
+    active: route.path.startsWith('/runner'),
+    filterKeys: ['guest', 'auth', 'mobile', 'inline'],
+    'data-mascot-hotspot': 'runner',
   }, {
     label: 'Profile',
     to: '/office/profile',
     icon: 'i-lucide-book-user',
     active: route.path.startsWith('/office/'),
-    filterKeys: ['auth', 'mobile', 'inline']
+    filterKeys: ['auth', 'mobile', 'inline'],
+    'data-mascot-hotspot': 'profile',
   }, {
     label: 'Login',
     icon: 'i-lucide-user-key',

@@ -13,6 +13,14 @@
     status: ChatStatus;
   }>();
 
+  const { portraitSrc } = useMascotTheme();
+  const assistantAvatar = computed(() => ({
+    avatar: {
+      src: portraitSrc.value,
+      as: { img: 'img' }
+    },
+  }));
+
   const emit = defineEmits<{
     edit: [messageId: string, text: string];
     regenerate: [];
@@ -130,8 +138,9 @@
     <UChatMessages class="min-h-0 flex-1"
       :messages="messages"
       :status="status"
+      :assistant="assistantAvatar"
       :should-auto-scroll="true"
-      :should-scroll-to-bottom="false"
+      :should-scroll-to-bottom="true"
       :ui="messagesUi">
       <template #content="{ message }">
         <div v-if="editingId === message.id" class="flex w-full flex-col gap-2">

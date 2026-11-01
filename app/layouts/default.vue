@@ -20,18 +20,35 @@ const navItems = computed(() => {
         container: 'max-w-full'
       }">
     <template #title>
-      <img class="h-6 w-auto" src="/icon.png" alt="blog icon" />
-			Blog
+      <span data-mascot-hotspot="home" class="inline-flex items-center gap-2">
+        <img class="h-6 w-auto" src="/icon.png" alt="blog icon" />
+        Blog
+      </span>
+    </template>
+    <template #toggle="{ open, toggle, ui }">
+      <UButton data-mascot-hotspot="menu"
+        color="neutral"
+        variant="ghost"
+        :aria-label="open ? 'Close menu' : 'Open menu'"
+        :icon="open ? 'i-lucide-x' : 'i-lucide-menu'"
+        :class="ui.toggle({ toggleSide: 'right' })"
+        @click="toggle"/>
     </template>
 
     <UNavigationMenu :items="navItems('inline')" />
 
     <template #right>
       <ClientOnly>
-        <UColorModeButton />
+        <span data-mascot-hotspot="color-mode" class="inline-flex">
+          <UColorModeButton />
+        </span>
       </ClientOnly>
-      <UButton variant="outline" color="neutral" :to="{ name: 'auth-login' }">Sign In</UButton>
-      <UButton variant="outline" :to="{ name: 'auth-register' }">Sign Up</UButton>
+      <span data-mascot-hotspot="sign-in" class="inline-flex">
+        <UButton variant="outline" color="neutral" :to="{ name: 'auth-login' }">Sign In</UButton>
+      </span>
+      <span data-mascot-hotspot="sign-up" class="inline-flex">
+        <UButton variant="outline" :to="{ name: 'auth-register' }">Sign Up</UButton>
+      </span>
     </template>
     <template #body>
       <UNavigationMenu :items="navItems('mobile')" orientation="vertical" class="-mx-2.5" />

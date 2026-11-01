@@ -20,15 +20,28 @@
         container: 'max-w-full'
       }">
     <template #title>
-      <img class="h-6 w-auto" src="/icon.png" alt="blog icon" />
-			Blog
+      <span data-mascot-hotspot="home" class="inline-flex items-center gap-2">
+        <img class="h-6 w-auto" src="/icon.png" alt="blog icon" />
+        Blog
+      </span>
+    </template>
+    <template #toggle="{ open, toggle, ui }">
+      <UButton data-mascot-hotspot="menu"
+        color="neutral"
+        variant="ghost"
+        :aria-label="open ? 'Close menu' : 'Open menu'"
+        :icon="open ? 'i-lucide-x' : 'i-lucide-menu'"
+        :class="ui.toggle({ toggleSide: 'right' })"
+        @click="toggle"/>
     </template>
 
     <UNavigationMenu :items="navItems('inline')" />
 
     <template #right>
       <ClientOnly>
-        <UColorModeButton />
+        <span data-mascot-hotspot="color-mode" class="inline-flex">
+          <UColorModeButton />
+        </span>
       </ClientOnly>
       <ClientOnly>
         <UPopover
@@ -36,6 +49,7 @@
           :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
           :ui="{ content: 'w-56 p-2' }">
           <UButton
+            data-mascot-hotspot="menu"
             color="neutral"
             variant="ghost"
             icon="i-lucide-menu"

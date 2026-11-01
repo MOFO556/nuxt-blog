@@ -151,8 +151,7 @@ export default defineEventHandler(async (event) => {
   });
 
   if (updated?.id) {
-    void import('#server-utils/assistant/indexPostById')
-      .then(({ indexPostById }) => indexPostById(updated.id))
+    indexPostById(updated.id)
       .catch((err) => console.warn('[assistant] index after update failed', err));
   }
 

@@ -8,7 +8,7 @@
 
 **Signed-in users** can create and edit posts, comment (with optional images), upload images and descriptions, and use an office dashboard to edit profile, manage passkeys, and list/revoke sessions. Auth supports password and WebAuthn passkeys (or both).
 
-An **assistant** (Nuxt UI chat + AI SDK) guides visitors to posts/filters and helps authors draft content (live web search + blog RAG + propose/confirm form fills).
+An **assistant** (Nuxt UI chat + AI SDK) guides visitors to posts/filters and helps authors draft content (live web search + blog RAG + propose/confirm form fills). A **mascot** on the home page is that assistant's face and speaks short scripted cues; a **runner** in the nav is a small endless game open to guests.
 
 UI: Tailwind CSS + Nuxt UI, mobile-first.
 

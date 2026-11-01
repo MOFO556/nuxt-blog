@@ -105,7 +105,10 @@
         border border-default bg-default shadow-xl">
       <div class="shrink-0 flex items-center justify-between 
         border-b border-default px-3 py-2">
-        <p class="text-sm font-medium">Blog assistant</p>
+        <div class="flex items-center gap-2">
+          <mascot-portrait class="size-7 shrink-0"/>
+          <p class="text-sm font-medium">Blog assistant</p>
+        </div>
         <UButton size="xs"
           color="neutral"
           variant="ghost"
@@ -168,7 +171,10 @@
     class="flex h-full min-h-0 w-full flex-col 
       overflow-hidden rounded-lg border border-default bg-default">
     <div class="shrink-0 flex items-center justify-between border-b border-default px-3 py-2">
-      <p class="text-sm font-medium">Blog assistant</p>
+      <div class="flex items-center gap-2">
+        <mascot-portrait class="size-7 shrink-0"/>
+        <p class="text-sm font-medium">Blog assistant</p>
+      </div>
       <div class="flex gap-1">
         <UButton size="xs" variant="ghost" icon="i-lucide-plus" @click="onNewChat"/>
         <UButton v-if="store.activeThreadId && userStore.loggedIn"
